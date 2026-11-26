@@ -60,16 +60,25 @@
       <div class="panel-head"><div><small>УПРАВЛЕНИЕ ОСТРОВОМ</small><h2>Строительство</h2></div><button class="close-btn" id="closeBuild">×</button></div>
       <div class="build-tabs"><button class="selected" data-category="all">Все</button><button data-category="economy">Экономика</button><button data-category="military">Герои</button><button data-category="special">Особые</button></div>
       <div class="building-list" id="buildingList"></div>
-      <p class="panel-hint">Выбери здание, затем нажми на свободное место острова. Перетаскивай уже построенные здания.</p>
+      <p class="panel-hint">Выбери здание, затем укажи свободное место. Для готового здания открой карточку и нажми «Переместить».</p>
     </section>
 
     <section class="inspect-panel hidden" id="inspectPanel">
       <button class="close-btn" id="closeInspect">×</button>
       <div class="inspect-art" id="inspectArt">⌂</div><small>ЗДАНИЕ ОСТРОВА</small><h2 id="inspectName">Штаб-квартира</h2><p id="inspectDesc">Центр управления поселением.</p>
       <div class="inspect-level">УРОВЕНЬ <b id="inspectLevel">1</b></div>
-      <div class="inspect-buttons"><button id="upgradeBtn">УЛУЧШИТЬ · 500 ◆</button><button class="secondary" id="exportBtn">ЭКСПОРТ GLB ↧</button></div>
+      <div class="inspect-buttons">
+        <button id="upgradeBtn">УЛУЧШИТЬ · 500 ◆</button>
+        <button class="move-building-btn" id="moveBtn">ПЕРЕМЕСТИТЬ</button>
+        <button class="secondary" id="exportBtn">ЭКСПОРТ GLB ↧</button>
+      </div>
       <div class="export-note" id="exportNote">Модель экспортируется отдельным файлом для дальнейшего использования в игре.</div>
     </section>
+
+    <div class="placement-bar hidden" id="placementBar">
+      <span id="placementMessage">Выбери свободное место на острове.</span>
+      <button id="cancelPlacement">ОТМЕНА</button>
+    </div>
 
     <div class="toast" id="toast"></div>
     <div class="help-pill">🖱 Перетаскивай здания · Колесо — масштаб · Правая кнопка — камера</div>
