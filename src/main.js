@@ -80,6 +80,10 @@ function startPlacement(def){
 function confirmPlacement(){
   if(!placing||!ghostValid||!ghostPos)return;
   const def=placing;
+  const goldNode=$('#gold');
+  const currentGold=Number(goldNode.textContent.replace(/\\s/g,''));
+  if(currentGold<def.cost){notify('Недостаточно золота для постройки');return;}
+  if(def.cost>0)goldNode.textContent=(currentGold-def.cost).toLocaleString('ru-RU');
   const model=createBuilding(def.id);model.position.set(ghostPos.x,ghostPos.y,ghostPos.z);root.add(model);
   placed.push({id:def.id,model,level:1,x:ghostPos.x,y:ghostPos.y,z:ghostPos.z});
   root.remove(ghostGroup);ghostGroup=null;placing=null;ghostValid=false;ghostPos=null;
