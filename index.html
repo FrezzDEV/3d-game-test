@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#101b20" />
+  <title>Floating Isles — Island Prototype</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <main id="game">
+    <canvas id="world"></canvas>
+    <div class="vignette"></div>
+    <header class="topbar">
+      <section class="player">
+        <div class="avatar">F</div>
+        <div class="player-meta"><strong>Frezz</strong><span>МАСТЕР · УРОВЕНЬ 12</span><div class="xp"><i></i></div></div>
+      </section>
+      <section class="resources">
+        <div class="resource"><span class="resource-icon gold">◆</span><b id="gold">12 500</b><button data-add="gold">+</button></div>
+        <div class="resource"><span class="resource-icon food">✿</span><b id="food">850</b><button data-add="food">+</button></div>
+        <div class="resource"><span class="resource-icon gem">♦</span><b id="gems">250</b><button data-add="gems">+</button></div>
+        <div class="resource extra"><span class="resource-icon wood">▰</span><b id="wood">320</b></div>
+        <div class="resource extra"><span class="resource-icon stone">⬟</span><b id="stone">180</b></div>
+      </section>
+      <button class="icon-btn settings" title="Настройки">⚙</button>
+    </header>
+
+    <aside class="left-rail">
+      <button class="rail-btn active" data-tab="island"><span>⌂</span><small>ОСТРОВ</small></button>
+      <button class="rail-btn" data-tab="heroes"><span>♙</span><small>ГЕРОИ</small></button>
+      <button class="rail-btn" data-tab="quests"><span>☷</span><small>ЗАДАНИЯ</small></button>
+      <button class="rail-btn" data-tab="guild"><span>⚑</span><small>ГИЛЬДИЯ</small></button>
+    </aside>
+
+    <div class="island-label"><span class="pulse"></span><div><b>ОСТРОВ НАДЕЖДЫ</b><small>Территория · Уровень 3</small></div></div>
+    <div class="right-actions">
+      <button class="action-card" id="towerBtn"><span class="action-icon tower">♜</span><span><b>Башня</b><small>Исследовать этажи</small></span><em>›</em></button>
+      <button class="action-card" id="dailyBtn"><span class="action-icon daily">✦</span><span><b>События</b><small>Новые награды</small></span><em>›</em></button>
+    </div>
+
+    <div class="bottom-left">
+      <button class="explore-btn" id="exploreBtn"><span class="compass">✥</span><span><b>ИССЛЕДОВАТЬ</b><small>Башня · Экспедиции</small></span><strong>›</strong></button>
+    </div>
+    <div class="bottom-right">
+      <button class="bottom-btn" id="shopBtn"><span>▣</span>МАГАЗИН</button>
+      <button class="bottom-btn" id="inventoryBtn"><span>▤</span>ИНВЕНТАРЬ</button>
+      <button class="build-btn" id="buildModeBtn"><span>＋</span>СТРОИТЬ</button>
+    </div>
+
+    <section class="build-panel hidden" id="buildPanel">
+      <div class="panel-head"><div><small>УПРАВЛЕНИЕ ОСТРОВОМ</small><h2>Строительство</h2></div><button class="close-btn" id="closeBuild">×</button></div>
+      <div class="build-tabs"><button class="selected" data-category="all">Все</button><button data-category="economy">Экономика</button><button data-category="military">Герои</button><button data-category="special">Особые</button></div>
+      <div class="building-list" id="buildingList"></div>
+      <p class="panel-hint">Выбери здание, затем нажми на свободное место острова. Перетаскивай уже построенные здания.</p>
+    </section>
+
+    <section class="inspect-panel hidden" id="inspectPanel">
+      <button class="close-btn" id="closeInspect">×</button>
+      <div class="inspect-art" id="inspectArt">⌂</div><small>ЗДАНИЕ ОСТРОВА</small><h2 id="inspectName">Штаб-квартира</h2><p id="inspectDesc">Центр управления поселением.</p>
+      <div class="inspect-level">УРОВЕНЬ <b id="inspectLevel">1</b></div>
+      <div class="inspect-buttons"><button id="upgradeBtn">УЛУЧШИТЬ · 500 ◆</button><button class="secondary" id="exportBtn">ЭКСПОРТ GLB ↧</button></div>
+      <div class="export-note" id="exportNote">Модель экспортируется отдельным файлом для дальнейшего использования в игре.</div>
+    </section>
+
+    <div class="toast" id="toast"></div>
+    <div class="help-pill">🖱 Перетаскивай здания · Колесо — масштаб · Правая кнопка — камера</div>
+  </main>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
