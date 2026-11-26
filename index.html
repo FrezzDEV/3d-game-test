@@ -1,88 +1,2017 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#101b20" />
-  <title>Floating Isles — Island Prototype</title>
-  <link rel="stylesheet" href="./styles.css" />
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
-      }
+  <title>FrezzDEV — База</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
     }
-  </script>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(180deg, #6495ed 0%, #8ab4f8 55%, #b6d4fe 100%);
+    }
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .ui-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .interactive {
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    .glass-panel {
+      background: rgba(30, 38, 56, 0.78);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1.5px solid rgba(130, 155, 200, 0.35);
+      box-shadow: 0 6px 16px rgba(10, 15, 30, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+    .res-pill {
+      background: rgba(28, 35, 52, 0.82);
+      border: 1.5px solid rgba(135, 160, 205, 0.35);
+      box-shadow: 0 4px 10px rgba(10, 15, 30, 0.3);
+    }
+    .plus-btn {
+      background: linear-gradient(180deg, #526282 0%, #38445e 100%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .notif-badge {
+      background: radial-gradient(circle at 35% 35%, #ff5e5e, #d91e1e);
+      border: 1.5px solid #ffffff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
+    }
+    .bottom-dock {
+      background: linear-gradient(180deg, rgba(46, 56, 82, 0.92) 0%, rgba(28, 35, 54, 0.96) 100%);
+      border-top: 2px solid rgba(145, 170, 220, 0.45);
+      border-left: 1.5px solid rgba(145, 170, 220, 0.35);
+      border-right: 1.5px solid rgba(145, 170, 220, 0.35);
+      box-shadow: 0 -6px 24px rgba(10, 15, 30, 0.45);
+    }
+    .tab-active {
+      background: linear-gradient(180deg, rgba(66, 133, 244, 0.55) 0%, rgba(37, 99, 235, 0.85) 100%);
+      border-top: 2px solid #93c5fd;
+      box-shadow: 0 0 16px rgba(59, 130, 246, 0.55);
+    }
+    .text-shadow {
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+    }
+  </style>
 </head>
 <body>
-  <main id="game">
-    <canvas id="world"></canvas>
-    <div class="vignette"></div>
-    <header class="topbar">
-      <section class="player">
-        <div class="avatar">F</div>
-        <div class="player-meta"><strong>Frezz</strong><span>МАСТЕР · УРОВЕНЬ 12</span><div class="xp"><i></i></div></div>
-      </section>
-      <section class="resources">
-        <div class="resource"><span class="resource-icon gold">◆</span><b id="gold">12 500</b><button data-add="gold">+</button></div>
-        <div class="resource"><span class="resource-icon food">✿</span><b id="food">850</b><button data-add="food">+</button></div>
-        <div class="resource"><span class="resource-icon gem">♦</span><b id="gems">250</b><button data-add="gems">+</button></div>
-        <div class="resource extra"><span class="resource-icon wood">▰</span><b id="wood">320</b></div>
-        <div class="resource extra"><span class="resource-icon stone">⬟</span><b id="stone">180</b></div>
-      </section>
-      <button class="icon-btn settings" title="Настройки">⚙</button>
-    </header>
+  <!-- 3D Сцена -->
+  <div id="canvas-container"></div>
 
-    <aside class="left-rail">
-      <button class="rail-btn active" data-tab="island"><span>⌂</span><small>ОСТРОВ</small></button>
-      <button class="rail-btn" data-tab="heroes"><span>♙</span><small>ГЕРОИ</small></button>
-      <button class="rail-btn" data-tab="quests"><span>☷</span><small>ЗАДАНИЯ</small></button>
-      <button class="rail-btn" data-tab="guild"><span>⚑</span><small>ГИЛЬДИЯ</small></button>
-    </aside>
+  <!-- Интерфейс 1 в 1 -->
+  <div class="ui-layer flex flex-col justify-between p-2.5 sm:p-3.5">
+    
+    <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
+    <div class="flex items-start justify-between gap-2 w-full">
+      
+      <!-- Левый верхний угол: Профиль + Событие + Ежедневные задания -->
+      <div class="flex flex-col gap-2 w-[215px] sm:w-[238px] shrink-0">
+        
+        <!-- Карточка профиля -->
+        <div class="glass-panel interactive rounded-2xl p-1.5 flex items-center gap-2.5">
+          <!-- Воксельный аватар -->
+          <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#2c364d] border-2 border-[#7c94c4] overflow-hidden shrink-0 flex items-center justify-center shadow-inner">
+            <svg viewBox="0 0 16 16" class="w-full h-full" shape-rendering="crispEdges">
+              <rect width="16" height="16" fill="#323d54"/>
+              <rect x="3" y="2" width="10" height="10" fill="#181c28"/>
+              <rect x="4" y="5" width="8" height="7" fill="#f7d3ba"/>
+              <rect x="4" y="10" width="8" height="2" fill="#e5b89b"/>
+              <rect x="3" y="2" width="10" height="4" fill="#1e2436"/>
+              <rect x="4" y="6" width="2" height="2" fill="#1e2436"/>
+              <rect x="7" y="6" width="2" height="1" fill="#1e2436"/>
+              <rect x="10" y="6" width="2" height="2" fill="#1e2436"/>
+              <rect x="5" y="3" width="6" height="1" fill="#35405e"/>
+              <rect x="5" y="8" width="2" height="2" fill="#1c2538"/>
+              <rect x="9" y="8" width="2" height="2" fill="#1c2538"/>
+              <rect x="5" y="8" width="1" height="1" fill="#6ba4ff"/>
+              <rect x="9" y="8" width="1" height="1" fill="#6ba4ff"/>
+              <rect x="3" y="12" width="10" height="4" fill="#283147"/>
+              <rect x="6" y="12" width="4" height="4" fill="#465678"/>
+              <rect x="7" y="12" width="2" height="2" fill="#d9e2f2"/>
+            </svg>
+          </div>
+          <!-- Инфо игрока -->
+          <div class="flex flex-col flex-1 min-w-0 pr-1">
+            <div class="text-white font-bold text-sm sm:text-[15px] leading-tight truncate text-shadow">FrezzDEV</div>
+            <div class="flex items-center justify-between text-[11px] sm:text-xs mt-0.5">
+              <span class="text-white font-semibold text-shadow">Ур. 12</span>
+              <span class="text-slate-200 font-medium text-[10px] sm:text-[11px]">850 / 2 000</span>
+            </div>
+            <!-- Шкала опыта -->
+            <div class="w-full h-2 bg-slate-900/80 rounded-full mt-1.5 overflow-hidden border border-slate-600/60">
+              <div class="h-full rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-200" style="width: 42.5%;"></div>
+            </div>
+          </div>
+        </div>
 
-    <div class="island-label"><span class="pulse"></span><div><b>ОСТРОВ НАДЕЖДЫ</b><small>Территория · Уровень 3</small></div></div>
-    <div class="right-actions">
-      <button class="action-card" id="towerBtn"><span class="action-icon tower">♜</span><span><b>Башня</b><small>Исследовать этажи</small></span><em>›</em></button>
-      <button class="action-card" id="dailyBtn"><span class="action-icon daily">✦</span><span><b>События</b><small>Новые награды</small></span><em>›</em></button>
-    </div>
+        <!-- Плашка: Событие -->
+        <div class="glass-panel interactive rounded-xl px-2.5 py-2 flex items-center justify-between hover:brightness-110 transition">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-8 h-8 shrink-0 flex items-center justify-center">
+              <svg viewBox="0 0 32 32" class="w-8 h-8 drop-shadow">
+                <polygon points="16,2 28,16 16,30 4,16" fill="#a855f7"/>
+                <polygon points="16,2 28,16 16,16" fill="#d8b4fe"/>
+                <polygon points="16,2 4,16 16,16" fill="#c084fc"/>
+                <polygon points="16,30 28,16 16,16" fill="#7e22ce"/>
+                <polygon points="16,10 21,16 16,22 11,16" fill="#f3e8ff" opacity="0.65"/>
+              </svg>
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span class="text-white font-bold text-xs sm:text-[13px] leading-tight text-shadow">Событие</span>
+              <span class="text-slate-200 text-[10px] sm:text-[11px] leading-tight mt-0.5 truncate">До конца: 6 д. 12 ч.</span>
+            </div>
+          </div>
+          <svg class="w-4 h-4 text-white/90 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+        </div>
 
-    <div class="bottom-left">
-      <button class="explore-btn" id="exploreBtn"><span class="compass">✥</span><span><b>ИССЛЕДОВАТЬ</b><small>Башня · Экспедиции</small></span><strong>›</strong></button>
-    </div>
-    <div class="bottom-right">
-      <button class="bottom-btn" id="shopBtn"><span>▣</span>МАГАЗИН</button>
-      <button class="bottom-btn" id="inventoryBtn"><span>▤</span>ИНВЕНТАРЬ</button>
-      <button class="build-btn" id="buildModeBtn"><span>＋</span>СТРОИТЬ</button>
-    </div>
+        <!-- Плашка: Ежедневные задания -->
+        <div class="glass-panel interactive rounded-xl px-2.5 py-2 flex items-center justify-between hover:brightness-110 transition">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-8 h-8 shrink-0 flex items-center justify-center">
+              <svg viewBox="0 0 32 32" class="w-8 h-8 drop-shadow">
+                <rect x="7" y="5" width="18" height="22" rx="2" fill="#e6c896" stroke="#8c5a2b" stroke-width="1.5"/>
+                <rect x="5" y="4" width="22" height="4" rx="2" fill="#c99a5b" stroke="#78491e" stroke-width="1.2"/>
+                <rect x="5" y="24" width="22" height="4" rx="2" fill="#c99a5b" stroke="#78491e" stroke-width="1.2"/>
+                <line x1="11" y1="12" x2="21" y2="12" stroke="#78491e" stroke-width="2" stroke-linecap="round"/>
+                <line x1="11" y1="16" x2="21" y2="16" stroke="#78491e" stroke-width="2" stroke-linecap="round"/>
+                <line x1="11" y1="20" x2="17" y2="20" stroke="#78491e" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="22" cy="21" r="3" fill="#dc2626"/>
+              </svg>
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span class="text-white font-bold text-xs sm:text-[13px] leading-tight text-shadow">Ежедневные</span>
+              <span class="text-white font-bold text-xs sm:text-[13px] leading-tight text-shadow">задания</span>
+              <span class="text-slate-200 text-[10px] sm:text-[11px] leading-tight mt-0.5">Выполнено: 0/5</span>
+            </div>
+          </div>
+          <svg class="w-4 h-4 text-white/90 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+        </div>
 
-    <section class="build-panel hidden" id="buildPanel">
-      <div class="panel-head"><div><small>УПРАВЛЕНИЕ ОСТРОВОМ</small><h2>Строительство</h2></div><button class="close-btn" id="closeBuild">×</button></div>
-      <div class="build-tabs"><button class="selected" data-category="all">Все</button><button data-category="economy">Экономика</button><button data-category="military">Герои</button><button data-category="special">Особые</button></div>
-      <div class="building-list" id="buildingList"></div>
-      <p class="panel-hint">Выбери здание, затем укажи свободное место. Для готового здания открой карточку и нажми «Переместить».</p>
-    </section>
-
-    <section class="inspect-panel hidden" id="inspectPanel">
-      <button class="close-btn" id="closeInspect">×</button>
-      <div class="inspect-art" id="inspectArt">⌂</div><small>ЗДАНИЕ ОСТРОВА</small><h2 id="inspectName">Штаб-квартира</h2><p id="inspectDesc">Центр управления поселением.</p>
-      <div class="inspect-level">УРОВЕНЬ <b id="inspectLevel">1</b></div>
-      <div class="inspect-buttons">
-        <button id="upgradeBtn">УЛУЧШИТЬ · 500 ◆</button>
-        <button class="move-building-btn" id="moveBtn">ПЕРЕМЕСТИТЬ</button>
-        <button class="secondary" id="exportBtn">ЭКСПОРТ GLB ↧</button>
       </div>
-      <div class="export-note" id="exportNote">Модель экспортируется отдельным файлом для дальнейшего использования в игре.</div>
-    </section>
 
-    <div class="placement-bar hidden" id="placementBar">
-      <span id="placementMessage">Выбери свободное место на острове.</span>
-      <button id="cancelPlacement">ОТМЕНА</button>
+      <!-- Центр: 5 Ресурсов -->
+      <div class="hidden md:flex items-center gap-2 lg:gap-2.5 pt-0.5 flex-wrap justify-center">
+        <!-- Золото: 24 560 -->
+        <div class="res-pill interactive rounded-full h-9 pl-1.5 pr-1 flex items-center gap-2">
+          <svg viewBox="0 0 28 28" class="w-6 h-6 shrink-0">
+            <circle cx="14" cy="14" r="12" fill="#f59e0b" stroke="#b45309" stroke-width="1.5"/>
+            <circle cx="14" cy="14" r="9" fill="#fbbf24"/>
+            <polygon points="14,8 18,14 14,20 10,14" fill="#fef08a"/>
+          </svg>
+          <span class="text-white font-bold text-xs lg:text-sm tracking-tight text-shadow">24 560</span>
+          <span class="plus-btn w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-sm leading-none">+</span>
+        </div>
+
+        <!-- Еда (окорок): 1 230 -->
+        <div class="res-pill interactive rounded-full h-9 pl-1.5 pr-1 flex items-center gap-2">
+          <svg viewBox="0 0 28 28" class="w-6 h-6 shrink-0">
+            <rect x="4" y="19" width="7" height="4" rx="2" transform="rotate(-45 4 19)" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1"/>
+            <ellipse cx="16" cy="12" rx="8" ry="6" transform="rotate(-45 16 12)" fill="#b45309" stroke="#78350f" stroke-width="1.5"/>
+            <ellipse cx="15" cy="11" rx="5" ry="3.5" transform="rotate(-45 15 11)" fill="#d97706"/>
+          </svg>
+          <span class="text-white font-bold text-xs lg:text-sm tracking-tight text-shadow">1 230</span>
+          <span class="plus-btn w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-sm leading-none">+</span>
+        </div>
+
+        <!-- Кристаллы: 320 -->
+        <div class="res-pill interactive rounded-full h-9 pl-1.5 pr-1 flex items-center gap-2">
+          <svg viewBox="0 0 28 28" class="w-6 h-6 shrink-0">
+            <polygon points="14,2 25,11 14,26 3,11" fill="#a855f7" stroke="#6b21a8" stroke-width="1.2"/>
+            <polygon points="14,2 25,11 14,12" fill="#e9d5ff"/>
+            <polygon points="14,2 3,11 14,12" fill="#c084fc"/>
+          </svg>
+          <span class="text-white font-bold text-xs lg:text-sm tracking-tight text-shadow">320</span>
+          <span class="plus-btn w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-sm leading-none">+</span>
+        </div>
+
+        <!-- Дерево: 2 100 -->
+        <div class="res-pill interactive rounded-full h-9 pl-1.5 pr-1 flex items-center gap-2">
+          <svg viewBox="0 0 28 28" class="w-6 h-6 shrink-0">
+            <path d="M8,18 L18,8 C20,6 23,9 21,11 L11,21 Z" fill="#92400e" stroke="#451a03" stroke-width="1.3"/>
+            <circle cx="9.5" cy="19.5" r="3.5" fill="#f59e0b" stroke="#78350f" stroke-width="1.2"/>
+            <circle cx="9.5" cy="19.5" r="1.5" fill="#b45309"/>
+          </svg>
+          <span class="text-white font-bold text-xs lg:text-sm tracking-tight text-shadow">2 100</span>
+          <span class="plus-btn w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-sm leading-none">+</span>
+        </div>
+
+        <!-- Камень: 1 750 -->
+        <div class="res-pill interactive rounded-full h-9 pl-1.5 pr-1 flex items-center gap-2">
+          <svg viewBox="0 0 28 28" class="w-6 h-6 shrink-0">
+            <polygon points="7,21 5,13 11,7 20,8 23,15 19,22" fill="#94a3b8" stroke="#475569" stroke-width="1.5"/>
+            <polygon points="11,7 20,8 16,14 8,13" fill="#cbd5e1"/>
+            <polygon points="16,14 23,15 19,22 12,21" fill="#64748b"/>
+          </svg>
+          <span class="text-white font-bold text-xs lg:text-sm tracking-tight text-shadow">1 750</span>
+          <span class="plus-btn w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-sm leading-none">+</span>
+        </div>
+      </div>
+
+      <!-- Правый верхний угол: Почта, Настройки + Исследование: Башня -->
+      <div class="flex flex-col items-end gap-2.5 shrink-0">
+        <div class="flex items-center gap-2.5">
+          <!-- Почта с уведомлением -->
+          <div class="interactive relative w-10 h-10 rounded-xl glass-panel flex items-center justify-center hover:brightness-110 transition">
+            <svg viewBox="0 0 24 24" class="w-6 h-6 text-white drop-shadow" fill="currentColor">
+              <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+            </svg>
+            <span class="notif-badge absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-white font-extrabold text-[11px]">!</span>
+          </div>
+
+          <!-- Настройки -->
+          <div class="interactive w-10 h-10 rounded-xl glass-panel flex items-center justify-center hover:brightness-110 transition">
+            <svg viewBox="0 0 24 24" class="w-6 h-6 text-slate-100 drop-shadow" fill="currentColor">
+              <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.488.488 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Виджет: Исследование: Башня / Этаж 25 -->
+        <div class="glass-panel interactive rounded-2xl p-2.5 w-[155px] sm:w-[172px] flex flex-col hover:brightness-110 transition">
+          <div class="text-white font-bold text-[11px] sm:text-xs leading-tight text-shadow">
+            Исследование:<br/>Башня
+          </div>
+          <div class="flex items-center justify-between mt-1.5 gap-1.5">
+            <div class="w-11 h-12 rounded-lg bg-[#231b38] border border-purple-400/40 flex items-center justify-center shrink-0 overflow-hidden">
+              <svg viewBox="0 0 36 40" class="w-10 h-11" shape-rendering="crispEdges">
+                <rect x="16" y="2" width="4" height="4" fill="#c084fc"/>
+                <rect x="14" y="6" width="8" height="5" fill="#7e22ce"/>
+                <rect x="12" y="11" width="12" height="7" fill="#581c87"/>
+                <rect x="10" y="18" width="16" height="9" fill="#4c1d95"/>
+                <rect x="8" y="27" width="20" height="11" fill="#3b0764"/>
+                <rect x="16" y="13" width="4" height="4" fill="#e879f9"/>
+                <rect x="14" y="21" width="3" height="4" fill="#c084fc"/>
+                <rect x="19" y="21" width="3" height="4" fill="#c084fc"/>
+                <rect x="15" y="31" width="6" height="7" fill="#1e1b4b"/>
+              </svg>
+            </div>
+            <div class="flex items-center gap-0.5">
+              <span class="text-white font-extrabold text-xs sm:text-[13px] text-shadow whitespace-nowrap">Этаж 25</span>
+              <svg class="w-4 h-4 text-white/90 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
-    <div class="toast" id="toast"></div>
-    <div class="help-pill">🖱 Перетаскивай здания · Колесо — масштаб · Правая кнопка — камера</div>
-  </main>
-  <script type="module" src="./src/main.js"></script>
+    <!-- НИЖНЯЯ ПАНЕЛЬ -->
+    <div class="flex items-end justify-between gap-2 w-full">
+      
+      <!-- Левый нижний угол: Кнопка Исследовать -->
+      <button id="explore-btn" type="button" class="glass-panel interactive rounded-2xl px-3 py-2 flex items-center gap-3 hover:brightness-110 active:scale-95 transition shrink-0 text-left">
+        <div class="w-11 h-11 sm:w-12 sm:h-12 shrink-0 flex items-center justify-center">
+          <svg viewBox="0 0 48 48" class="w-12 h-12 drop-shadow-md">
+            <circle cx="24" cy="24" r="20" fill="#1e293b" stroke="#fbbf24" stroke-width="2.5"/>
+            <circle cx="24" cy="24" r="15" fill="#334155" stroke="#d97706" stroke-width="1.2"/>
+            <polygon points="24,3 28,20 45,24 28,28 24,45 20,28 3,24 20,20" fill="#f59e0b" stroke="#78350f" stroke-width="1"/>
+            <polygon points="24,3 27,21 24,24" fill="#fef08a"/>
+            <polygon points="45,24 27,27 24,24" fill="#fde047"/>
+            <polygon points="24,45 21,27 24,24" fill="#b45309"/>
+            <polygon points="3,24 21,21 24,24" fill="#d97706"/>
+            <circle cx="24" cy="24" r="4.5" fill="#38bdf8" stroke="#ffffff" stroke-width="1.2"/>
+          </svg>
+        </div>
+        <div class="flex flex-col pr-1">
+          <span class="text-white font-extrabold text-sm sm:text-base leading-tight text-shadow">Исследовать</span>
+          <span class="text-slate-200 text-[10px] sm:text-xs font-medium mt-0.5">Башня • Экспедиции</span>
+        </div>
+        <svg class="w-5 h-5 text-white shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+
+      <!-- Центр-низ: Навигационный док (5 вкладок) -->
+      <div class="bottom-dock interactive rounded-t-2xl sm:rounded-2xl flex items-stretch overflow-hidden mx-auto">
+        <!-- Вкладка 1: База (активная) -->
+        <button data-tab="base" class="nav-tab tab-active px-3 sm:px-6 py-2 flex flex-col items-center justify-center gap-1 min-w-[64px] sm:min-w-[88px] transition">
+          <svg viewBox="0 0 32 32" class="w-7 h-7 drop-shadow">
+            <rect x="6" y="14" width="20" height="14" fill="#e2e8f0" stroke="#475569" stroke-width="1.2"/>
+            <polygon points="5,14 10,7 15,14" fill="#2563eb"/>
+            <polygon points="17,14 22,7 27,14" fill="#2563eb"/>
+            <polygon points="11,12 16,4 21,12" fill="#3b82f6"/>
+            <rect x="13" y="20" width="6" height="8" rx="3" fill="#78350f"/>
+          </svg>
+          <span class="text-white font-bold text-[11px] sm:text-xs text-shadow">База</span>
+        </button>
+
+        <!-- Вкладка 2: Герои -->
+        <button data-tab="heroes" class="nav-tab px-3 sm:px-6 py-2 flex flex-col items-center justify-center gap-1 min-w-[64px] sm:min-w-[88px] hover:bg-white/10 transition">
+          <svg viewBox="0 0 32 32" class="w-7 h-7 drop-shadow">
+            <path d="M7,7 L23,23 M25,7 L9,23" stroke="#cbd5e1" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M6,21 L11,26 M26,21 L21,26" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="6" cy="26" r="2" fill="#b45309"/>
+            <circle cx="26" cy="26" r="2" fill="#b45309"/>
+          </svg>
+          <span class="text-slate-200 font-semibold text-[11px] sm:text-xs text-shadow">Герои</span>
+        </button>
+
+        <!-- Вкладка 3: Задания (с уведомлением !) -->
+        <button data-tab="quests" class="nav-tab relative px-3 sm:px-6 py-2 flex flex-col items-center justify-center gap-1 min-w-[64px] sm:min-w-[88px] hover:bg-white/10 transition">
+          <div class="relative">
+            <svg viewBox="0 0 32 32" class="w-7 h-7 drop-shadow">
+              <rect x="8" y="5" width="16" height="22" rx="2" fill="#eab308" stroke="#854d0e" stroke-width="1.3"/>
+              <rect x="6" y="4" width="20" height="4" rx="1.5" fill="#ca8a04"/>
+              <rect x="6" y="24" width="20" height="4" rx="1.5" fill="#ca8a04"/>
+              <line x1="11" y1="12" x2="21" y2="12" stroke="#713f12" stroke-width="2"/>
+              <line x1="11" y1="17" x2="19" y2="17" stroke="#713f12" stroke-width="2"/>
+            </svg>
+            <span class="notif-badge absolute -top-1 -right-2 w-4 h-4 rounded-full flex items-center justify-center text-white font-extrabold text-[10px]">!</span>
+          </div>
+          <span class="text-slate-200 font-semibold text-[11px] sm:text-xs text-shadow">Задания</span>
+        </button>
+
+        <!-- Вкладка 4: Достижения -->
+        <button data-tab="achievements" class="nav-tab px-3 sm:px-6 py-2 flex flex-col items-center justify-center gap-1 min-w-[64px] sm:min-w-[88px] hover:bg-white/10 transition">
+          <svg viewBox="0 0 32 32" class="w-7 h-7 drop-shadow">
+            <path d="M9,6 H23 V14 C23,18.5 19.5,21 16,21 C12.5,21 9,18.5 9,14 Z" fill="#fbbf24" stroke="#b45309" stroke-width="1.3"/>
+            <path d="M9,8 H5 C5,13 7,15 9,15 M23,8 H27 C27,13 25,15 23,15" fill="none" stroke="#f59e0b" stroke-width="2"/>
+            <rect x="14" y="21" width="4" height="4" fill="#d97706"/>
+            <rect x="10" y="25" width="12" height="3" rx="1" fill="#92400e"/>
+          </svg>
+          <span class="text-slate-200 font-semibold text-[11px] sm:text-xs text-shadow">Достижения</span>
+        </button>
+
+        <!-- Вкладка 5: Гильдия -->
+        <button data-tab="guild" class="nav-tab px-3 sm:px-6 py-2 flex flex-col items-center justify-center gap-1 min-w-[64px] sm:min-w-[88px] hover:bg-white/10 transition">
+          <svg viewBox="0 0 32 32" class="w-7 h-7 drop-shadow">
+            <circle cx="11" cy="11" r="3.5" fill="#cbd5e1"/>
+            <path d="M5,23 C5,18.5 8,16.5 11,16.5 C14,16.5 17,18.5 17,23 Z" fill="#94a3b8"/>
+            <circle cx="21" cy="11" r="3.5" fill="#cbd5e1"/>
+            <path d="M15,23 C15,18.5 18,16.5 21,16.5 C24,16.5 27,18.5 27,23 Z" fill="#94a3b8"/>
+            <circle cx="16" cy="9.5" r="4" fill="#f8fafc"/>
+            <path d="M9,24 C9,19 12,16.5 16,16.5 C20,16.5 23,19 23,24 Z" fill="#e2e8f0"/>
+          </svg>
+          <span class="text-slate-200 font-semibold text-[11px] sm:text-xs text-shadow">Гильдия</span>
+        </button>
+      </div>
+
+      <!-- Правый нижний угол: Магазин и Инвентарь -->
+      <div class="flex items-center gap-2.5 shrink-0">
+        <!-- Магазин (с уведомлением !) -->
+        <div class="glass-panel interactive relative rounded-2xl w-[74px] sm:w-[82px] py-2 px-1.5 flex flex-col items-center justify-center gap-1 hover:brightness-110 transition">
+          <span class="notif-badge absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-white font-extrabold text-[11px]">!</span>
+          <svg viewBox="0 0 36 32" class="w-9 h-8 drop-shadow">
+            <rect x="6" y="14" width="24" height="14" fill="#f8fafc" stroke="#475569" stroke-width="1.3"/>
+            <rect x="14" y="18" width="8" height="10" fill="#92400e"/>
+            <polygon points="4,14 7,7 29,7 32,14" fill="#ef4444"/>
+            <polygon points="9,14 11,7 15,7 14,14" fill="#ffffff"/>
+            <polygon points="19,14 19,7 23,7 24,14" fill="#ffffff"/>
+            <polygon points="28,14 27,7 29,7 32,14" fill="#ef4444"/>
+          </svg>
+          <span class="text-white font-bold text-[11px] sm:text-xs text-shadow">Магазин</span>
+        </div>
+
+        <!-- Инвентарь -->
+        <div class="glass-panel interactive rounded-2xl w-[74px] sm:w-[82px] py-2 px-1.5 flex flex-col items-center justify-center gap-1 hover:brightness-110 transition">
+          <svg viewBox="0 0 36 32" class="w-9 h-8 drop-shadow">
+            <rect x="7" y="9" width="22" height="19" rx="4" fill="#b45309" stroke="#451a03" stroke-width="1.5"/>
+            <path d="M7,13 Q18,17 29,13 L29,9 Q29,7 26,7 L10,7 Q7,7 7,9 Z" fill="#d97706" stroke="#451a03" stroke-width="1.3"/>
+            <rect x="12" y="12" width="2.5" height="9" rx="1" fill="#78350f"/>
+            <rect x="21.5" y="12" width="2.5" height="9" rx="1" fill="#78350f"/>
+            <rect x="15.5" y="14" width="5" height="4" rx="1" fill="#fbbf24" stroke="#78350f" stroke-width="1"/>
+          </svg>
+          <span class="text-white font-bold text-[11px] sm:text-xs text-shadow">Инвентарь</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Модальное окно режима «Исследовать» -->
+  <div id="explore-modal" class="fixed inset-0 z-30 hidden items-center justify-center p-2.5 sm:p-4 bg-slate-950/70 backdrop-blur-md">
+    <div class="w-full max-w-4xl flex flex-col gap-3 max-h-[94vh] overflow-y-auto">
+      
+      <!-- Верхняя панель управления модальным окном -->
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-2">
+          <button id="back-explore-btn" type="button" class="hidden px-3.5 h-9 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-500/40 text-white text-xs sm:text-sm font-bold shadow transition">← Назад к режимам</button>
+          <span id="explore-modal-title" class="hidden text-white font-extrabold text-base sm:text-lg text-shadow">Карта экспедиций</span>
+        </div>
+        <button id="close-explore-btn" type="button" class="ml-auto w-9 h-9 rounded-xl bg-slate-900/85 hover:bg-slate-800 border border-slate-500/40 flex items-center justify-center text-white font-bold shadow-lg transition">✕</button>
+      </div>
+
+      <!-- Экран выбора из 3 карточек (Порядок: 1. Башня, 2. Исследовать, 3. Экспедиции) -->
+      <div id="explore-mode-select" class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 items-stretch">
+        
+        <!-- КАРТОЧКА 1: БАШНЯ -->
+        <div class="rounded-3xl bg-[#272936]/95 border-2 border-purple-500/50 shadow-2xl overflow-hidden flex flex-col justify-between">
+          <div>
+            <!-- Заголовок карточки -->
+            <div class="px-4 py-2.5 bg-[#20222e] flex items-center justify-center gap-2.5 border-b border-slate-700/60">
+              <svg viewBox="0 0 28 28" class="w-7 h-7 shrink-0" shape-rendering="crispEdges">
+                <rect x="6" y="4" width="3" height="4" fill="#cbd5e1"/>
+                <rect x="12.5" y="4" width="3" height="4" fill="#cbd5e1"/>
+                <rect x="19" y="4" width="3" height="4" fill="#cbd5e1"/>
+                <rect x="6" y="8" width="16" height="4" fill="#94a3b8"/>
+                <rect x="8" y="12" width="12" height="10" fill="#cbd5e1"/>
+                <rect x="12" y="15" width="4" height="7" fill="#1e293b"/>
+                <rect x="6" y="22" width="16" height="3" fill="#64748b"/>
+              </svg>
+              <span class="text-white font-extrabold text-lg sm:text-xl tracking-tight text-shadow">Башня</span>
+            </div>
+
+            <!-- Арт-иллюстрация Башни -->
+            <div class="relative h-36 sm:h-40 w-full overflow-hidden bg-gradient-to-b from-[#4c3b6e] via-[#6e5694] to-[#9b87bd]">
+              <svg viewBox="0 0 260 150" class="w-full h-full object-cover" shape-rendering="crispEdges">
+                <!-- Облака на фоне -->
+                <rect x="0" y="20" width="75" height="30" fill="#d8cce8" opacity="0.75"/>
+                <rect x="185" y="15" width="75" height="35" fill="#d8cce8" opacity="0.75"/>
+                <rect x="10" y="95" width="240" height="55" fill="#c7b8de" opacity="0.65"/>
+                <!-- Парящий тёмный остров -->
+                <polygon points="130,82 215,108 130,136 45,108" fill="#3a4a3a"/>
+                <polygon points="45,108 130,136 130,148 55,120" fill="#2d2638"/>
+                <polygon points="215,108 130,136 130,148 205,120" fill="#1f1a29"/>
+                <!-- Деревья и фиолетовые кристаллы -->
+                <rect x="68" y="92" width="14" height="14" fill="#274e37"/>
+                <rect x="180" y="90" width="16" height="16" fill="#274e37"/>
+                <rect x="88" y="106" width="6" height="12" fill="#c084fc"/>
+                <rect x="166" y="104" width="6" height="12" fill="#c084fc"/>
+                <!-- Тёмная башня -->
+                <rect x="102" y="74" width="56" height="34" fill="#322d42"/>
+                <rect x="106" y="48" width="48" height="26" fill="#3e3852"/>
+                <rect x="112" y="24" width="36" height="24" fill="#4b4463"/>
+                <!-- Зубцы и фиолетовое пламя сверху -->
+                <rect x="110" y="18" width="7" height="6" fill="#322d42"/>
+                <rect x="126" y="18" width="8" height="6" fill="#322d42"/>
+                <rect x="143" y="18" width="7" height="6" fill="#322d42"/>
+                <rect x="122" y="12" width="16" height="10" fill="#d946ef"/>
+                <rect x="126" y="8" width="8" height="6" fill="#f5d0fe"/>
+                <!-- Фиолетовые магические кольца вокруг башни -->
+                <ellipse cx="130" cy="84" rx="58" ry="16" fill="none" stroke="#c084fc" stroke-width="3" opacity="0.85"/>
+                <ellipse cx="130" cy="56" rx="44" ry="12" fill="none" stroke="#e879f9" stroke-width="2.5" opacity="0.8"/>
+              </svg>
+              <span id="tower-floor-badge" class="absolute top-2 right-2 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-purple-900/90 text-purple-100 border border-purple-400/50 shadow">Этаж 25</span>
+            </div>
+
+            <!-- Описание -->
+            <div class="px-4 pt-3 pb-2 text-center">
+              <p class="text-slate-100 font-semibold text-xs sm:text-[13px] leading-snug">
+                Покоряйте этажи Башни<br/>и получайте ценные награды!
+              </p>
+            </div>
+          </div>
+
+          <!-- Награды и кнопка Войти -->
+          <div class="px-4 pb-4 pt-1 flex flex-col items-center gap-3">
+            <div class="w-full border-t border-slate-600/50 pt-2 flex flex-col items-center gap-1.5">
+              <span class="text-slate-300 font-bold text-xs">Награды:</span>
+              <div class="flex items-center justify-center gap-3">
+                <!-- Кристалл -->
+                <svg viewBox="0 0 28 28" class="w-7 h-7 drop-shadow">
+                  <polygon points="14,2 25,11 14,26 3,11" fill="#a855f7" stroke="#581c87" stroke-width="1.3"/>
+                  <polygon points="14,2 25,11 14,12" fill="#f3e8ff"/>
+                </svg>
+                <!-- Монета -->
+                <svg viewBox="0 0 28 28" class="w-7 h-7 drop-shadow">
+                  <circle cx="14" cy="14" r="12" fill="#f59e0b" stroke="#92400e" stroke-width="1.5"/>
+                  <circle cx="14" cy="14" r="8.5" fill="#fbbf24"/>
+                </svg>
+                <!-- Карта героя -->
+                <svg viewBox="0 0 28 28" class="w-7 h-7 drop-shadow">
+                  <rect x="6" y="3" width="16" height="22" rx="2.5" fill="#7e22ce" stroke="#e9d5ff" stroke-width="1.5"/>
+                  <polygon points="14,8 19,14 14,20 9,14" fill="#d8b4fe"/>
+                </svg>
+              </div>
+            </div>
+
+            <button id="start-tower-btn" type="button" class="w-full py-2.5 rounded-xl bg-gradient-to-b from-[#949db0] to-[#6f788c] hover:brightness-110 active:scale-95 text-slate-950 font-extrabold text-sm sm:text-base border border-white/40 shadow-md flex items-center justify-center gap-2 transition">
+              <span>Войти</span>
+              <span class="text-xs">▶</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- КАРТОЧКА 2: ИССЛЕДОВАТЬ (с золотым свечением как на скриншоте) -->
+        <div class="rounded-3xl bg-[#272936]/95 border-2 border-amber-300 shadow-[0_0_25px_rgba(251,191,36,0.55)] overflow-hidden flex flex-col justify-between">
+          <div>
+            <!-- Заголовок карточки -->
+            <div class="px-4 py-2.5 bg-[#20222e] flex items-center justify-center gap-2.5 border-b border-amber-400/30">
+              <svg viewBox="0 0 28 28" class="w-7 h-7 shrink-0">
+                <path d="M5,5 L21,21 M23,5 L7,21" stroke="#e2e8f0" stroke-width="3.5" stroke-linecap="round"/>
+                <path d="M4,19 L9,24 M24,19 L19,24" stroke="#f59e0b" stroke-width="2.8" stroke-linecap="round"/>
+              </svg>
+              <span class="text-white font-extrabold text-lg sm:text-xl tracking-tight text-shadow">Исследовать</span>
+            </div>
+
+            <!-- Арт-иллюстрация локации с маркером -->
+            <div class="relative h-36 sm:h-40 w-full overflow-hidden bg-gradient-to-b from-[#6fa3ef] to-[#9cc4fa]">
+              <svg viewBox="0 0 260 150" class="w-full h-full object-cover" shape-rendering="crispEdges">
+                <!-- Облака -->
+                <rect x="0" y="95" width="65" height="55" fill="#e2e8f0" opacity="0.8"/>
+                <rect x="195" y="95" width="65" height="55" fill="#e2e8f0" opacity="0.8"/>
+                <!-- Зелёный остров -->
+                <polygon points="130,22 250,78 130,145 10,78" fill="#68bd45"/>
+                <!-- Песчаная тропа -->
+                <polygon points="118,45 142,45 175,92 145,108 115,82 85,95" fill="#dcc292"/>
+                <!-- Красный флажок сверху -->
+                <rect x="122" y="24" width="3" height="22" fill="#475569"/>
+                <polygon points="125,24 143,29 125,35" fill="#ef4444"/>
+                <!-- Камни и деревья -->
+                <rect x="65" y="56" width="22" height="14" fill="#94a3b8"/>
+                <rect x="30" y="42" width="24" height="24" fill="#2f8532"/>
+                <rect x="200" y="48" width="26" height="26" fill="#2f8532"/>
+                <rect x="115" y="108" width="24" height="22" fill="#3ea33c"/>
+                <!-- Маркер локации со скрещёнными мечами -->
+                <g transform="translate(178, 66)">
+                  <path d="M 0,24 C -12,10 -16,2 -16,-6 A 16,16 0 1,1 16,-6 C 16,2 12,10 0,24 Z" fill="#ffffff" stroke="#b91c1c" stroke-width="2.5"/>
+                  <circle cx="0" cy="-6" r="11" fill="#38bdf8"/>
+                  <path d="M -5,-11 L 5,-1 M 5,-11 L -5,-1" stroke="#1e293b" stroke-width="2.4" stroke-linecap="round"/>
+                </g>
+              </svg>
+            </div>
+
+            <!-- Описание -->
+            <div class="px-4 pt-3 pb-2 text-center">
+              <p class="text-slate-100 font-semibold text-xs sm:text-[13px] leading-snug">
+                Отправляйтесь в новые<br/>локации, собирайте ресурсы<br/>и находите сокровища!
+              </p>
+            </div>
+          </div>
+
+          <!-- Награды и кнопка Перейти -->
+          <div class="px-4 pb-4 pt-1 flex flex-col items-center gap-3">
+            <div class="w-full border-t border-slate-600/50 pt-2 flex flex-col items-center gap-1.5">
+              <span class="text-slate-300 font-bold text-xs">Награды:</span>
+              <div class="flex items-center justify-center gap-3">
+                <!-- Монета -->
+                <svg viewBox="0 0 28 28" class="w-7 h-7 drop-shadow">
+                  <circle cx="14" cy="14" r="12" fill="#f59e0b" stroke="#92400e" stroke-width="1.5"/>
+                  <circle cx="14" cy="14" r="8.5" fill="#fbbf24"/>
+                </svg>
+                <!-- Звезда EXP -->
+                <svg viewBox="0 0 28 28" class="w-7 h-7 drop-shadow">
+                  <polygon points="14,2 18,10 26,11 20,17 21,25 14,21 7,25 8,17 2,11 10,10" fill="#a855f7" stroke="#581c87" stroke-width="1.2"/>
+                  <text x="14" y="16.5" font-size="6.5" font-weight="800" fill="#ffffff" text-anchor="middle">EXP</text>
+                </svg>
+                <!-- Сундук -->
+                <svg viewBox="0 0 28 28" class="w-7 h-7 drop-shadow">
+                  <rect x="4" y="8" width="20" height="15" rx="2" fill="#b45309" stroke="#451a03" stroke-width="1.5"/>
+                  <rect x="4" y="12" width="20" height="2.5" fill="#fbbf24"/>
+                  <rect x="12" y="11" width="4" height="5" rx="1" fill="#fef08a"/>
+                </svg>
+              </div>
+            </div>
+
+            <button id="open-exp-map-btn" type="button" class="w-full py-2.5 rounded-xl bg-gradient-to-b from-[#f1f5f9] to-[#cbd5e1] hover:brightness-105 active:scale-95 text-slate-950 font-extrabold text-sm sm:text-base border border-white shadow-md flex items-center justify-center gap-2 transition">
+              <span>Перейти</span>
+              <span class="text-xs">▶</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- КАРТОЧКА 3: ЭКСПЕДИЦИИ (Доступно с 20 уровня) -->
+        <div class="rounded-3xl bg-[#272936]/95 border-2 border-slate-600/60 shadow-2xl overflow-hidden flex flex-col justify-between">
+          <div>
+            <!-- Заголовок карточки -->
+            <div class="px-4 py-2.5 bg-[#20222e] flex items-center justify-center gap-2.5 border-b border-slate-700/60">
+              <svg viewBox="0 0 28 28" class="w-7 h-7 shrink-0">
+                <circle cx="14" cy="14" r="11" fill="#334155" stroke="#cbd5e1" stroke-width="2"/>
+                <polygon points="14,5 17,14 14,23 11,14" fill="#ef4444"/>
+                <polygon points="14,14 17,14 14,23 11,14" fill="#e2e8f0"/>
+              </svg>
+              <span class="text-white font-extrabold text-lg sm:text-xl tracking-tight text-shadow">Экспедиции</span>
+            </div>
+
+            <!-- Арт-иллюстрация лагеря с затемнением и замком -->
+            <div class="relative h-36 sm:h-40 w-full overflow-hidden bg-[#3a4a38]">
+              <svg viewBox="0 0 260 150" class="w-full h-full object-cover opacity-65" shape-rendering="crispEdges">
+                <polygon points="130,25 245,80 130,142 15,80" fill="#5b7a44"/>
+                <!-- Палатка -->
+                <polygon points="130,42 175,92 85,92" fill="#d6c29c"/>
+                <polygon points="130,42 145,92 115,92" fill="#5c4028"/>
+                <!-- Флаг над палаткой -->
+                <rect x="128" y="20" width="3" height="22" fill="#475569"/>
+                <polygon points="131,20 150,25 131,31" fill="#dc2626"/>
+                <!-- Костёр -->
+                <polygon points="130,84 138,98 122,98" fill="#f97316"/>
+                <polygon points="130,89 134,98 126,98" fill="#fef08a"/>
+              </svg>
+              <!-- Плашка блокировки по уровню -->
+              <div class="absolute inset-0 bg-slate-950/45 flex items-center justify-center px-3">
+                <div class="flex items-center gap-2.5 bg-slate-950/75 border border-slate-500/40 rounded-2xl px-3.5 py-2 shadow-lg">
+                  <div class="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center shrink-0">
+                    <svg viewBox="0 0 24 24" class="w-5 h-5 text-slate-900" fill="currentColor">
+                      <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                    </svg>
+                  </div>
+                  <div class="text-white font-extrabold text-xs sm:text-sm leading-tight text-shadow">
+                    Доступно<br/>с 20 уровня
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Описание -->
+            <div class="px-4 pt-3 pb-2 text-center">
+              <p class="text-slate-200 font-semibold text-xs sm:text-[13px] leading-snug">
+                Отправляйте героев<br/>в экспедиции и получайте<br/>редкие награды!
+              </p>
+            </div>
+          </div>
+
+          <!-- Награды и кнопка Заблокировано -->
+          <div class="px-4 pb-4 pt-1 flex flex-col items-center gap-3">
+            <div class="w-full border-t border-slate-600/50 pt-2 flex flex-col items-center gap-1.5">
+              <span class="text-slate-300 font-bold text-xs">Награды:</span>
+              <div class="flex items-center justify-center gap-3">
+                <!-- Карта героя -->
+                <svg viewBox="0 0 28 28" class="w-7 h-7 drop-shadow">
+                  <rect x="6" y="3" width="16" height="22" rx="2.5" fill="#7e22ce" stroke="#e9d5ff" stroke-width="1.5"/>
+                  <polygon points="14,8 19,14 14,20 9,14" fill="#d8b4fe"/>
+                </svg>
+                <!-- Монета -->
+                <svg viewBox="0 0 28 28" class="w-7 h-7 drop-shadow">
+                  <circle cx="14" cy="14" r="12" fill="#f59e0b" stroke="#92400e" stroke-width="1.5"/>
+                  <circle cx="14" cy="14" r="8.5" fill="#fbbf24"/>
+                </svg>
+                <!-- Сундук -->
+                <svg viewBox="0 0 28 28" class="w-7 h-7 drop-shadow">
+                  <rect x="4" y="8" width="20" height="15" rx="2" fill="#b45309" stroke="#451a03" stroke-width="1.5"/>
+                  <rect x="4" y="12" width="20" height="2.5" fill="#fbbf24"/>
+                  <rect x="12" y="11" width="4" height="5" rx="1" fill="#fef08a"/>
+                </svg>
+              </div>
+            </div>
+
+            <button id="locked-exp-btn" type="button" class="w-full py-2.5 rounded-xl bg-[#434857] text-slate-300 font-extrabold text-sm sm:text-base border border-slate-500/40 shadow-inner flex items-center justify-center gap-2 cursor-not-allowed">
+              <svg viewBox="0 0 24 24" class="w-4 h-4 text-slate-300" fill="currentColor">
+                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+              </svg>
+              <span>Заблокировано</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Карта экспедиций (открывается по кнопке «Перейти» на карточке «Исследовать») -->
+      <div id="expedition-map-view" class="hidden flex-col gap-3 glass-panel rounded-3xl p-4">
+        <div class="relative w-full h-72 sm:h-80 rounded-2xl overflow-hidden border-2 border-amber-300/60 bg-[#2d4c54] shadow-inner">
+          <svg viewBox="0 0 360 320" class="w-full h-full object-cover">
+            <!-- Море -->
+            <rect width="360" height="320" fill="#2c535e"/>
+            <!-- Сетка карты -->
+            <g stroke="#3d6c78" stroke-width="0.8" opacity="0.55">
+              <line x1="0" y1="64" x2="360" y2="64"/>
+              <line x1="0" y1="128" x2="360" y2="128"/>
+              <line x1="0" y1="192" x2="360" y2="192"/>
+              <line x1="0" y1="256" x2="360" y2="256"/>
+              <line x1="72" y1="0" x2="72" y2="320"/>
+              <line x1="144" y1="0" x2="144" y2="320"/>
+              <line x1="216" y1="0" x2="216" y2="320"/>
+              <line x1="288" y1="0" x2="288" y2="320"/>
+            </g>
+
+            <!-- Регион 1: Талия -->
+            <g class="map-region cursor-pointer hover:brightness-110 transition" data-region="Талия" data-status="open" data-reward="+220 золота, +180 дерева">
+              <polygon points="0,0 165,0 140,75 45,95 0,75" fill="#738754" stroke="#fde047" stroke-width="2.2"/>
+              <text x="52" y="42" fill="#ffffff" font-size="13" font-weight="800" stroke="#0f172a" stroke-width="3" paint-order="stroke">ТАЛИЯ</text>
+            </g>
+
+            <!-- Регион 2: Элария -->
+            <g class="map-region cursor-pointer hover:brightness-110 transition" data-region="Элария" data-status="open" data-reward="+260 золота, +190 камня">
+              <polygon points="165,0 360,0 360,92 225,95 140,75" fill="#b8a87e" stroke="#fde047" stroke-width="2.2"/>
+              <text x="245" y="54" fill="#ffffff" font-size="13" font-weight="800" stroke="#0f172a" stroke-width="3" paint-order="stroke">ЭЛАРИЯ</text>
+            </g>
+
+            <!-- Регион 3: Нордия (закрыт) -->
+            <g class="map-region cursor-pointer hover:brightness-110 transition" data-region="Нордия" data-status="locked">
+              <polygon points="45,95 140,75 215,105 160,155 40,145" fill="#3a4c2d" stroke="#fde047" stroke-width="2.2"/>
+              <circle cx="132" cy="105" r="11" fill="#1e293b" stroke="#cbd5e1" stroke-width="1.5"/>
+              <rect x="127" y="104" width="10" height="8" rx="1.5" fill="#f8fafc"/>
+              <path d="M129,104 V101 A3,3 0 0,1 135,101 V104" fill="none" stroke="#f8fafc" stroke-width="1.6"/>
+              <text x="102" y="132" fill="#ffffff" font-size="13" font-weight="800" stroke="#0f172a" stroke-width="3" paint-order="stroke">НОРДИЯ</text>
+            </g>
+
+            <!-- Регион 4: Полуостров Терн (открыт по умолчанию) -->
+            <g class="map-region cursor-pointer hover:brightness-110 transition" data-region="Полуостров Терн" data-status="open" data-reward="+280 дерева, +160 еды">
+              <polygon points="160,155 215,105 295,112 275,165 185,172" fill="#6d8c4c" stroke="#fde047" stroke-width="2.5"/>
+              <text x="186" y="140" fill="#ffffff" font-size="11.5" font-weight="800" stroke="#0f172a" stroke-width="3" paint-order="stroke">ПОЛУОСТРОВ</text>
+              <text x="208" y="154" fill="#ffffff" font-size="11.5" font-weight="800" stroke="#0f172a" stroke-width="3" paint-order="stroke">ТЕРН</text>
+            </g>
+
+            <!-- Регион 5: Вельс -->
+            <g class="map-region cursor-pointer hover:brightness-110 transition" data-region="Вельс" data-status="open" data-reward="+310 золота, +140 камня">
+              <polygon points="295,112 360,92 360,185 285,178 275,165" fill="#8f7556" stroke="#fde047" stroke-width="2.2"/>
+              <text x="302" y="150" fill="#ffffff" font-size="13" font-weight="800" stroke="#0f172a" stroke-width="3" paint-order="stroke">ВЕЛЬС</text>
+            </g>
+
+            <!-- Регион 6: Сариан -->
+            <g class="map-region cursor-pointer hover:brightness-110 transition" data-region="Сариан" data-status="open" data-reward="+240 дерева, +210 камня">
+              <polygon points="285,178 360,185 360,255 295,245" fill="#4f6644" stroke="#fde047" stroke-width="2.2"/>
+              <text x="300" y="218" fill="#ffffff" font-size="12.5" font-weight="800" stroke="#0f172a" stroke-width="3" paint-order="stroke">САРИАН</text>
+            </g>
+
+            <!-- Регион 7: Альвария -->
+            <g class="map-region cursor-pointer hover:brightness-110 transition" data-region="Альвария" data-status="open" data-reward="+340 золота, +175 еды">
+              <polygon points="0,235 95,248 115,320 0,320" fill="#5e7849" stroke="#fde047" stroke-width="2.2"/>
+              <text x="24" y="288" fill="#ffffff" font-size="13" font-weight="800" stroke="#0f172a" stroke-width="3" paint-order="stroke">АЛЬВАРИЯ</text>
+            </g>
+
+            <!-- Регион 8: Море на юго-востоке континента Астер -->
+            <g class="map-region cursor-pointer hover:brightness-110 transition" data-region="Море на юго-востоке континента Астер" data-status="open" data-reward="+400 золота, +200 еды">
+              <polygon points="185,235 310,230 345,320 165,320" fill="#709464" stroke="#fde047" stroke-width="2.2"/>
+              <text x="195" y="274" fill="#ffffff" font-size="10.5" font-weight="800" stroke="#0f172a" stroke-width="3" paint-order="stroke">МОРЕ НА ЮГО-ВОСТОКЕ</text>
+              <text x="205" y="288" fill="#ffffff" font-size="10.5" font-weight="800" stroke="#0f172a" stroke-width="3" paint-order="stroke">КОНТИНЕНТА АСТЕР</text>
+            </g>
+          </svg>
+        </div>
+
+        <!-- Панель выбранного региона -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 bg-slate-900/80 border border-slate-600/50 rounded-2xl p-3">
+          <div class="flex flex-col">
+            <div class="flex items-center gap-2">
+              <span id="selected-region-name" class="text-white font-extrabold text-sm sm:text-base">Полуостров Терн</span>
+              <span id="selected-region-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600/80 text-emerald-100 border border-emerald-300/40">Открыто</span>
+            </div>
+            <span id="selected-region-reward" class="text-slate-300 text-xs mt-0.5">Награда: +280 дерева, +160 еды</span>
+          </div>
+          <button id="start-exp-btn" type="button" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-b from-amber-400 to-amber-600 hover:brightness-110 active:scale-95 text-slate-950 font-extrabold text-xs sm:text-sm border border-amber-200 shadow-md transition">
+            Отправить отряд
+          </button>
+        </div>
+      </div>
+
+      <!-- Уведомление о награде / статусе -->
+      <div id="explore-feedback" class="hidden rounded-2xl px-4 py-2.5 border text-xs sm:text-sm font-bold text-center"></div>
+
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // ЛОГИКА ИНТЕРФЕЙСА И МОДАЛЬНОГО ОКНА
+    // ==========================================
+    let goldCount = 24560;
+    let foodCount = 1230;
+    let gemCount = 320;
+    let woodCount = 2100;
+    let stoneCount = 1750;
+    let currentTowerFloor = 25;
+
+    const exploreBtn = document.getElementById('explore-btn');
+    const exploreModal = document.getElementById('explore-modal');
+    const closeExploreBtn = document.getElementById('close-explore-btn');
+    const backExploreBtn = document.getElementById('back-explore-btn');
+    const exploreModalTitle = document.getElementById('explore-modal-title');
+    const exploreModeSelect = document.getElementById('explore-mode-select');
+    const expeditionMapView = document.getElementById('expedition-map-view');
+    const openExpMapBtn = document.getElementById('open-exp-map-btn');
+    const startTowerBtn = document.getElementById('start-tower-btn');
+    const startExpBtn = document.getElementById('start-exp-btn');
+    const lockedExpBtn = document.getElementById('locked-exp-btn');
+    const towerFloorBadge = document.getElementById('tower-floor-badge');
+    const selectedRegionName = document.getElementById('selected-region-name');
+    const selectedRegionBadge = document.getElementById('selected-region-badge');
+    const selectedRegionReward = document.getElementById('selected-region-reward');
+    const exploreFeedback = document.getElementById('explore-feedback');
+
+    let activeRegion = { name: 'Полуостров Терн', status: 'open', reward: '+280 дерева, +160 еды' };
+
+    function formatNum(n) {
+      return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    }
+
+    function updateResourceUI() {
+      const pills = document.querySelectorAll('.res-pill span:first-of-type');
+      if (pills.length >= 5) {
+        pills[0].textContent = formatNum(goldCount);
+        pills[1].textContent = formatNum(foodCount);
+        pills[2].textContent = formatNum(gemCount);
+        pills[3].textContent = formatNum(woodCount);
+        pills[4].textContent = formatNum(stoneCount);
+      }
+      const rightWidgetFloor = document.querySelector('.glass-panel.w-\\[155px\\] span.whitespace-nowrap, .glass-panel.sm\\:w-\\[172px\\] span.whitespace-nowrap');
+      if (rightWidgetFloor) {
+        rightWidgetFloor.textContent = `Этаж ${currentTowerFloor}`;
+      }
+    }
+
+    function showFeedback(text, isError = false) {
+      exploreFeedback.textContent = text;
+      exploreFeedback.classList.remove('hidden', 'bg-emerald-500/20', 'border-emerald-400/40', 'text-emerald-200', 'bg-rose-500/20', 'border-rose-400/40', 'text-rose-200');
+      if (isError) {
+        exploreFeedback.classList.add('bg-rose-500/20', 'border-rose-400/40', 'text-rose-200');
+      } else {
+        exploreFeedback.classList.add('bg-emerald-500/20', 'border-emerald-400/40', 'text-emerald-200');
+      }
+    }
+
+    function resetExploreView() {
+      exploreModeSelect.classList.remove('hidden');
+      expeditionMapView.classList.add('hidden');
+      expeditionMapView.classList.remove('flex');
+      backExploreBtn.classList.add('hidden');
+      exploreModalTitle.classList.add('hidden');
+      exploreFeedback.classList.add('hidden');
+    }
+
+    exploreBtn.addEventListener('click', () => {
+      resetExploreView();
+      exploreModal.classList.remove('hidden');
+      exploreModal.classList.add('flex');
+    });
+
+    openExpMapBtn.addEventListener('click', () => {
+      exploreModeSelect.classList.add('hidden');
+      expeditionMapView.classList.remove('hidden');
+      expeditionMapView.classList.add('flex');
+      backExploreBtn.classList.remove('hidden');
+      exploreModalTitle.classList.remove('hidden');
+      exploreModalTitle.textContent = 'Карта экспедиций';
+      exploreFeedback.classList.add('hidden');
+    });
+
+    backExploreBtn.addEventListener('click', () => {
+      resetExploreView();
+    });
+
+    lockedExpBtn.addEventListener('click', () => {
+      showFeedback('Режим «Экспедиции» откроется на 20 уровне аккаунта (текущий: Ур. 12).', true);
+    });
+
+    document.querySelectorAll('.map-region').forEach(regionEl => {
+      regionEl.addEventListener('click', () => {
+        const name = regionEl.dataset.region;
+        const status = regionEl.dataset.status;
+        const reward = regionEl.dataset.reward || 'Требуется разрешение совета';
+        activeRegion = { name, status, reward };
+
+        selectedRegionName.textContent = name;
+        exploreFeedback.classList.add('hidden');
+
+        if (status === 'locked') {
+          selectedRegionBadge.textContent = 'Заблокировано';
+          selectedRegionBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600/80 text-rose-100 border border-rose-300/40';
+          selectedRegionReward.textContent = 'Подземелье закрыто замком';
+          startExpBtn.classList.add('opacity-50');
+        } else {
+          selectedRegionBadge.textContent = 'Открыто';
+          selectedRegionBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600/80 text-emerald-100 border border-emerald-300/40';
+          selectedRegionReward.textContent = `Награда: ${reward}`;
+          startExpBtn.classList.remove('opacity-50');
+        }
+      });
+    });
+
+    closeExploreBtn.addEventListener('click', () => {
+      exploreModal.classList.add('hidden');
+      exploreModal.classList.remove('flex');
+    });
+
+    exploreModal.addEventListener('click', (e) => {
+      if (e.target === exploreModal) {
+        exploreModal.classList.add('hidden');
+        exploreModal.classList.remove('flex');
+      }
+    });
+
+    startTowerBtn.addEventListener('click', () => {
+      goldCount += 350;
+      gemCount += 15;
+      currentTowerFloor += 1;
+      towerFloorBadge.textContent = `Этаж ${currentTowerFloor}`;
+      updateResourceUI();
+      showFeedback(`Этаж ${currentTowerFloor - 1} пройден! Получено: +350 золота и +15 кристаллов.`);
+    });
+
+    startExpBtn.addEventListener('click', () => {
+      if (activeRegion.status === 'locked') {
+        showFeedback(`Регион «${activeRegion.name}» пока закрыт! Выберите открытое подземелье.`, true);
+        return;
+      }
+      goldCount += 250;
+      foodCount += 160;
+      woodCount += 240;
+      stoneCount += 180;
+      updateResourceUI();
+      showFeedback(`Экспедиция в регион «${activeRegion.name}» завершена! Награда: ${activeRegion.reward}.`);
+    });
+
+    // Переключение вкладок нижнего дока
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.nav-tab').forEach(t => {
+          t.classList.remove('tab-active');
+          const span = t.querySelector('span:last-of-type');
+          if (span) {
+            span.classList.remove('text-white', 'font-bold');
+            span.classList.add('text-slate-200', 'font-semibold');
+          }
+        });
+        tab.classList.add('tab-active');
+        const activeSpan = tab.querySelector('span:last-of-type');
+        if (activeSpan) {
+          activeSpan.classList.remove('text-slate-200', 'font-semibold');
+          activeSpan.classList.add('text-white', 'font-bold');
+        }
+      });
+    });
+
+    // ==========================================
+    // THREE.JS ВОКСЕЛЬНЫЙ ОСТРОВ 1 В 1
+    // ==========================================
+    let scene, camera, renderer;
+    let islandGroup, millBlades, portalCore, portalRing, waterStreams = [], clouds = [], fountainDrops = [];
+    let mineCart, mineCartBody, mineCartOre, mineCartCycleStart = null;
+    let isDragging = false;
+    let prevMouse = { x: 0, y: 0 };
+    let targetRotY = 0;
+    let targetRotX = 0;
+    let currentRotY = 0;
+    let currentRotX = 0;
+    let targetZoom = 1;
+    let currentZoom = 1;
+
+    const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+    const matCache = {};
+    function getMat(hex, opts = {}) {
+      const key = hex + JSON.stringify(opts);
+      if (!matCache[key]) {
+        matCache[key] = new THREE.MeshLambertMaterial({ color: hex, ...opts });
+      }
+      return matCache[key];
+    }
+
+    function addVoxel(parent, x, y, z, sx, sy, sz, color, opts = {}) {
+      const mesh = new THREE.Mesh(boxGeo, getMat(color, opts));
+      mesh.scale.set(sx, sy, sz);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      parent.add(mesh);
+      return mesh;
+    }
+
+    function initScene() {
+      const container = document.getElementById('canvas-container');
+      scene = new THREE.Scene();
+
+      // Перспективная камера с точным изометрическим ракурсом как на скриншоте
+      camera = new THREE.PerspectiveCamera(31, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 44, 62);
+      camera.lookAt(0, -1.8, 0.5);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      // Освещение
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x6b8cff, 0.78);
+      hemiLight.position.set(0, 50, 0);
+      scene.add(hemiLight);
+
+      const dirLight = new THREE.DirectionalLight(0xfff8e7, 0.92);
+      dirLight.position.set(28, 52, 34);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.near = 10;
+      dirLight.shadow.camera.far = 140;
+      const d = 32;
+      dirLight.shadow.camera.left = -d;
+      dirLight.shadow.camera.right = d;
+      dirLight.shadow.camera.top = d;
+      dirLight.shadow.camera.bottom = -d;
+      dirLight.shadow.bias = -0.0005;
+      scene.add(dirLight);
+
+      // Группа всего острова (масштабирована 1 в 1 под экран)
+      islandGroup = new THREE.Group();
+      islandGroup.scale.set(1.22, 1.22, 1.22);
+      scene.add(islandGroup);
+
+      buildIslandBase();
+      buildPathsAndBridge();
+      buildCastle();
+      buildFountainPlaza();
+      buildWindmill();
+      buildPortal();
+      buildBlueHouse();
+      buildArcheryRange();
+      buildBlacksmith();
+      buildMarketStall();
+      buildMine();
+      buildEmptyPlots();
+      buildEnvironmentAndTrees();
+      buildWaterfallsAndMiniIslands();
+      buildClouds();
+
+      setupControls();
+      onResize();
+      window.addEventListener('resize', onResize);
+    }
+
+    // 1. ОСНОВАНИЕ ОСТРОВА (Ровная ступенчатая платформа и аккуратный скалистый конус)
+    function buildIslandBase() {
+      const grassColors = [0x68bd45, 0x74c94e, 0x5eb23c, 0x80d457];
+      const rockColors = [0x82727d, 0x71626c, 0x91808b, 0x61545d];
+
+      for (let gx = -22; gx <= 22; gx++) {
+        for (let gz = -18; gz <= 16; gz++) {
+          const normX = gx / 22.0;
+          const normZ = (gz + 1) / 16.5;
+          const dist = Math.sqrt(normX * normX + normZ * normZ);
+
+          const hash = Math.sin(gx * 12.9898 + gz * 78.233) * 43758.5453;
+          const rand = hash - Math.floor(hash);
+
+          // Ровный овальный контур без хаотичных выступов по краям
+          if (dist <= 1.0) {
+            const gCol = grassColors[Math.floor(rand * grassColors.length)];
+            addVoxel(islandGroup, gx, 0, gz, 1.01, 1.0, 1.01, gCol);
+
+            // Тонкий слой почвы под травой
+            addVoxel(islandGroup, gx, -0.75, gz, 1.01, 0.5, 1.01, 0x6b4c3b);
+
+            // Гладкий ступенчатый конус скалы (минимальный разброс высоты 0.4)
+            const edgeFactor = Math.max(0, 1.0 - dist);
+            const depth = Math.max(1.5, Math.round(1.6 + Math.pow(edgeFactor, 1.15) * 7.2 + rand * 0.45));
+            const rCol = rockColors[Math.floor(((rand * 7) % 1) * rockColors.length)];
+            addVoxel(islandGroup, gx, -1.0 - depth / 2, gz, 1.01, depth, 1.01, rCol);
+          }
+        }
+      }
+    }
+
+    // 2. ПЕСЧАНЫЕ ДОРОЖКИ И ПЕРЕДНИЙ МОСТИК
+    function buildPathsAndBridge() {
+      const pathColor = 0xd9be8c;
+      const pathBorder = 0xc7aa76;
+
+      function drawPathRect(x1, z1, x2, z2) {
+        const minX = Math.min(x1, x2), maxX = Math.max(x1, x2);
+        const minZ = Math.min(z1, z2), maxZ = Math.max(z1, z2);
+        for (let x = minX; x <= maxX; x++) {
+          for (let z = minZ; z <= maxZ; z++) {
+            const isEdge = (x === minX || x === maxX || z === minZ || z === maxZ);
+            addVoxel(islandGroup, x, 0.54, z, 1.01, 0.12, 1.01, isEdge ? pathBorder : pathColor);
+          }
+        }
+      }
+
+      drawPathRect(-1, -10, 1, 15);
+      drawPathRect(-13, -7, 13, -6);
+      drawPathRect(-15, 3, 15, 4);
+      drawPathRect(-11, 11, 11, 12);
+      drawPathRect(-9, -6, -8, 12);
+      drawPathRect(8, -6, 9, 12);
+      drawPathRect(-14, -6, -13, 6);
+      drawPathRect(13, -6, 14, 6);
+
+      // Деревянный мостик на переднем краю
+      const bridgeZStart = 15.8;
+      for (let i = 0; i < 6; i++) {
+        const bz = bridgeZStart + i * 0.65;
+        const by = 0.45 - i * 0.42;
+        addVoxel(islandGroup, 0, by, bz, 3.4, 0.25, 0.55, 0x8c5830);
+        addVoxel(islandGroup, -1.6, by + 0.55, bz, 0.22, 1.1, 0.22, 0x6b4020);
+        addVoxel(islandGroup, 1.6, by + 0.55, bz, 0.22, 1.1, 0.22, 0x6b4020);
+      }
+      const railGroup = new THREE.Group();
+      railGroup.position.set(0, -0.35, 17.4);
+      railGroup.rotation.x = 0.57;
+      islandGroup.add(railGroup);
+      addVoxel(railGroup, -1.6, 0.85, 0, 0.18, 0.18, 4.2, 0x7c4d2b);
+      addVoxel(railGroup, 1.6, 0.85, 0, 0.18, 0.18, 4.2, 0x7c4d2b);
+    }
+
+    // 3. ГЛАВНЫЙ ЗАМОК (Сверху по центру — четкая воксельная архитектура)
+    function buildCastle() {
+      const castle = new THREE.Group();
+      castle.position.set(0, 0.5, -13.2);
+      islandGroup.add(castle);
+
+      const v = 0.4;
+      const wallCream = 0xf2e6d0;
+      const wallTrim = 0xd6c7b0;
+      const stoneGray = 0x8a95a6;
+      const stoneDark = 0x677285;
+      const roofBlue = 0x2563eb;
+      const roofDark = 0x1d4ed8;
+      const gold = 0xfbbf24;
+      const darkGate = 0x3b2314;
+
+      // Каменный цоколь и парадная лестница
+      addVoxel(castle, 0, 0.25, 0, 12.0, 0.5, 5.2, stoneDark);
+      addVoxel(castle, 0, 0.15, 3.0, 3.6, 0.3, 1.0, stoneGray);
+      addVoxel(castle, 0, 0.35, 2.6, 3.2, 0.3, 0.8, 0xb0b9c6);
+
+      function buildTower(tx, tz, widthVoxels, heightVoxels, hasCrest = false) {
+        const w = widthVoxels * v;
+        const h = heightVoxels * v;
+        addVoxel(castle, tx, 0.5 + h / 2, tz, w, h, w, wallCream);
+        addVoxel(castle, tx, 0.5 + v * 0.5, tz, w + 0.15, v, w + 0.15, stoneGray);
+        addVoxel(castle, tx, 0.5 + h - v * 0.5, tz, w + 0.2, v, w + 0.2, stoneGray);
+
+        // Зубцы по периметру
+        const half = w / 2 + 0.05;
+        for (let offset = -half + v / 2; offset <= half - v / 2 + 0.01; offset += v * 2) {
+          addVoxel(castle, tx + offset, 0.5 + h + v * 0.4, tz + half, v * 0.9, v * 0.8, v * 0.5, wallCream);
+          addVoxel(castle, tx + offset, 0.5 + h + v * 0.4, tz - half, v * 0.9, v * 0.8, v * 0.5, wallCream);
+          addVoxel(castle, tx + half, 0.5 + h + v * 0.4, tz + offset, v * 0.5, v * 0.8, v * 0.9, wallCream);
+          addVoxel(castle, tx - half, 0.5 + h + v * 0.4, tz + offset, v * 0.5, v * 0.8, v * 0.9, wallCream);
+        }
+
+        // Окна
+        addVoxel(castle, tx, 0.5 + h * 0.65, tz + w / 2 + 0.04, v * 1.1, v * 2.2, 0.12, 0x263042);
+        addVoxel(castle, tx, 0.5 + h * 0.32, tz + w / 2 + 0.04, v * 0.9, v * 1.6, 0.12, 0x263042);
+
+        if (hasCrest) {
+          addVoxel(castle, tx, 0.5 + h * 0.52, tz + w / 2 + 0.06, v * 3.0, v * 3.6, 0.14, roofDark);
+          addVoxel(castle, tx, 0.5 + h * 0.52, tz + w / 2 + 0.12, v * 1.4, v * 2.0, 0.08, gold);
+        }
+
+        // Ступенчатая пирамидальная крыша
+        const tiers = widthVoxels + 1;
+        for (let t = 0; t < tiers; t++) {
+          const rw = (widthVoxels + 1 - t) * v;
+          const ry = 0.5 + h + v * 0.6 + t * (v * 0.95);
+          addVoxel(castle, tx, ry, tz, rw, v * 0.95, rw, t % 2 === 0 ? roofBlue : roofDark);
+        }
+
+        // Шпиль и флажок
+        const topY = 0.5 + h + v * 0.6 + tiers * (v * 0.95);
+        addVoxel(castle, tx, topY + 0.45, tz, 0.14, 1.0, 0.14, gold);
+        addVoxel(castle, tx + 0.38, topY + 0.72, tz, 0.68, 0.42, 0.1, hasCrest ? gold : roofBlue);
+      }
+
+      // Соединительные стены с зубцами
+      addVoxel(castle, 0, 2.0, 0.2, 9.6, 3.0, 3.4, wallTrim);
+      addVoxel(castle, 0, 3.55, 1.9, 9.8, 0.3, 0.35, stoneGray);
+      for (let wx = -4.6; wx <= 4.61; wx += 0.8) {
+        if (Math.abs(wx) < 1.8) continue;
+        addVoxel(castle, wx, 3.85, 1.9, 0.42, 0.35, 0.35, wallCream);
+      }
+
+      // Главные ворота
+      addVoxel(castle, 0, 1.6, 1.95, 2.2, 2.2, 0.35, stoneDark);
+      addVoxel(castle, 0, 1.4, 2.02, 1.4, 1.8, 0.25, darkGate);
+      addVoxel(castle, 0, 2.55, 2.02, 1.0, 0.4, 0.25, darkGate);
+
+      // 5 башен
+      buildTower(0, -0.3, 9, 14, true);
+      buildTower(-3.1, 0.5, 5, 10, false);
+      buildTower(3.1, 0.5, 5, 10, false);
+      buildTower(-5.4, 0.1, 5, 8, false);
+      buildTower(5.4, 0.1, 5, 8, false);
+
+      // Клумбы вдоль фасада
+      for (let fx = -4.8; fx <= 4.81; fx += 0.8) {
+        if (Math.abs(fx) < 1.9) continue;
+        addVoxel(castle, fx, 0.18, 2.45, 0.78, 0.35, 0.78, 0x4ca638);
+        const fColor = Math.round(Math.abs(fx * 5)) % 2 === 0 ? 0xf472b6 : 0xfef08a;
+        addVoxel(castle, fx, 0.42, 2.45, 0.32, 0.22, 0.32, fColor);
+      }
+    }
+
+    // 4. ПЛОЩАДЬ С ФОНТАНОМ И ЗНАМЕНАМИ
+    function buildFountainPlaza() {
+      const plaza = new THREE.Group();
+      plaza.position.set(0, 0.5, -0.5);
+      islandGroup.add(plaza);
+
+      for (let x = -2; x <= 2; x++) {
+        for (let z = -2; z <= 2; z++) {
+          const c = (x + z) % 2 === 0 ? 0xc2cad6 : 0xa7b0bd;
+          addVoxel(plaza, x, 0.08, z, 0.98, 0.16, 0.98, c);
+        }
+      }
+
+      addVoxel(plaza, 0, 0.4, -1.5, 3.0, 0.55, 0.45, 0x8892a4);
+      addVoxel(plaza, 0, 0.4, 1.5, 3.0, 0.55, 0.45, 0x8892a4);
+      addVoxel(plaza, -1.5, 0.4, 0, 0.45, 0.55, 3.0, 0x8892a4);
+      addVoxel(plaza, 1.5, 0.4, 0, 0.45, 0.55, 3.0, 0x8892a4);
+      [[-1.35, -1.35], [1.35, -1.35], [-1.35, 1.35], [1.35, 1.35]].forEach(([cx, cz]) => {
+        addVoxel(plaza, cx, 0.42, cz, 0.55, 0.6, 0.55, 0x9aa4b5);
+      });
+
+      addVoxel(plaza, 0, 0.42, 0, 2.6, 0.42, 2.6, 0x38bdf8);
+
+      addVoxel(plaza, 0, 0.9, 0, 1.1, 0.8, 1.1, 0x8892a4);
+      addVoxel(plaza, 0, 1.5, 0, 1.6, 0.35, 1.6, 0xa7b0bd);
+      addVoxel(plaza, 0, 1.68, 0, 1.3, 0.15, 1.3, 0x7dd3fc);
+      addVoxel(plaza, 0, 2.15, 0, 0.85, 0.85, 0.85, 0x9aa4b5);
+      addVoxel(plaza, 0, 2.75, 0, 0.6, 0.5, 0.6, 0xb8c1cf);
+
+      [-3.3, 3.3].forEach(bx => {
+        addVoxel(plaza, bx, 0.25, 0, 0.75, 0.4, 0.75, 0x788294);
+        addVoxel(plaza, bx, 2.15, 0, 0.18, 3.9, 0.18, 0x5c3a21);
+        addVoxel(plaza, bx, 3.7, 0, 1.1, 0.16, 0.16, 0x5c3a21);
+        addVoxel(plaza, bx, 4.15, 0, 0.32, 0.32, 0.32, 0xfbbf24);
+        addVoxel(plaza, bx, 2.75, 0.08, 0.85, 1.75, 0.1, 0x2563eb);
+        addVoxel(plaza, bx, 2.85, 0.14, 0.35, 0.5, 0.08, 0xfbbf24);
+      });
+
+      for (let i = 0; i < 6; i++) {
+        const drop = addVoxel(plaza, (Math.random() - 0.5) * 1.4, 1.5 + Math.random(), (Math.random() - 0.5) * 1.4, 0.2, 0.2, 0.2, 0xbae6fd);
+        fountainDrops.push({ mesh: drop, offset: i * 1.1 });
+      }
+    }
+
+    // 5. МЕЛЬНИЦА И ПШЕНИЧНОЕ ПОЛЕ
+    function buildWindmill() {
+      const mill = new THREE.Group();
+      mill.position.set(-12.5, 0.5, -11.5);
+      islandGroup.add(mill);
+
+      addVoxel(mill, 0, 0.6, 0, 3.0, 1.2, 3.0, 0x85808a);
+      addVoxel(mill, 0, 1.25, 0, 3.2, 0.25, 3.2, 0x6b6670);
+      addVoxel(mill, 0, 0.65, 1.52, 0.85, 1.1, 0.15, 0x5c3a21);
+
+      addVoxel(mill, 0, 2.25, 0, 2.6, 1.8, 2.6, 0xe8d5b7);
+      [[-1.25, -1.25], [1.25, -1.25], [-1.25, 1.25], [1.25, 1.25]].forEach(([bx, bz]) => {
+        addVoxel(mill, bx, 2.25, bz, 0.24, 1.85, 0.24, 0x6b4226);
+      });
+      addVoxel(mill, 0, 3.7, 0, 2.2, 1.2, 2.2, 0xd9c29e);
+
+      const roofSteps = [
+        { w: 2.6, h: 0.45, c: 0xb91c1c },
+        { w: 2.1, h: 0.45, c: 0x991b1b },
+        { w: 1.5, h: 0.45, c: 0xb91c1c },
+        { w: 0.9, h: 0.45, c: 0x991b1b },
+        { w: 0.4, h: 0.35, c: 0x7f1d1d }
+      ];
+      roofSteps.forEach((st, idx) => {
+        addVoxel(mill, 0, 4.5 + idx * 0.42, 0, st.w, st.h, st.w, st.c);
+      });
+
+      millBlades = new THREE.Group();
+      millBlades.position.set(0, 3.7, 1.45);
+      mill.add(millBlades);
+
+      addVoxel(millBlades, 0, 0, 0, 0.45, 0.45, 0.65, 0x5c3a21);
+      for (let i = 0; i < 4; i++) {
+        const arm = new THREE.Group();
+        arm.rotation.z = (i * Math.PI) / 2 + Math.PI / 4;
+        addVoxel(arm, 0, 1.75, 0, 0.2, 3.5, 0.16, 0x5c3a21);
+        addVoxel(arm, 0.38, 2.15, 0.04, 0.68, 2.2, 0.08, 0xfef3c7);
+        for (let r = 1.2; r <= 3.1; r += 0.6) {
+          addVoxel(arm, 0.38, r, 0.08, 0.72, 0.1, 0.12, 0x784824);
+        }
+        millBlades.add(arm);
+      }
+
+      const field = new THREE.Group();
+      field.position.set(2.3, 0, 3.8);
+      mill.add(field);
+
+      addVoxel(field, 0, 0.12, 0, 5.2, 0.24, 3.4, 0x7c5338);
+      for (let wx = -2.1; wx <= 2.11; wx += 0.6) {
+        for (let wz = -1.2; wz <= 1.21; wz += 0.6) {
+          addVoxel(field, wx, 0.55, wz, 0.36, 0.65, 0.36, 0xeab308);
+          addVoxel(field, wx, 0.95, wz, 0.26, 0.28, 0.26, 0xfef08a);
+        }
+      }
+      addVoxel(field, 0, 0.35, -1.8, 5.4, 0.14, 0.12, 0x7c4d2b);
+      addVoxel(field, 0, 0.35, 1.8, 5.4, 0.14, 0.12, 0x7c4d2b);
+      addVoxel(field, -2.7, 0.35, 0, 0.12, 0.14, 3.6, 0x7c4d2b);
+      addVoxel(field, 2.7, 0.35, 0, 0.12, 0.14, 3.6, 0x7c4d2b);
+    }
+
+    // 6. МАГИЧЕСКИЙ ПОРТАЛ
+    function buildPortal() {
+      const portal = new THREE.Group();
+      portal.position.set(12.5, 0.5, -11.0);
+      islandGroup.add(portal);
+
+      addVoxel(portal, 0, 0.18, 0, 6.0, 0.36, 6.0, 0x8592a6);
+      addVoxel(portal, 0, 0.42, 0, 4.8, 0.24, 4.8, 0xa8b4c7);
+      portalRing = addVoxel(portal, 0, 0.56, 0, 3.4, 0.1, 3.4, 0x38bdf8, { emissive: 0x0284c7, emissiveIntensity: 0.7 });
+
+      [-1.7, 1.7].forEach(cx => {
+        addVoxel(portal, cx, 0.85, -0.5, 1.2, 0.6, 1.2, 0x707c8f);
+        addVoxel(portal, cx, 2.5, -0.5, 0.85, 2.8, 0.85, 0x94a3b8);
+        addVoxel(portal, cx, 4.05, -0.5, 1.15, 0.45, 1.15, 0x707c8f);
+        addVoxel(portal, cx, 2.5, -0.05, 0.25, 1.6, 0.1, 0x7dd3fc, { emissive: 0x38bdf8, emissiveIntensity: 0.8 });
+      });
+
+      addVoxel(portal, 0, 4.5, -0.5, 4.6, 0.65, 1.1, 0x8592a6);
+      addVoxel(portal, 0, 5.05, -0.5, 3.0, 0.55, 0.95, 0xa8b4c7);
+      addVoxel(portal, 0, 5.55, -0.5, 1.4, 0.5, 0.8, 0xcbd5e1);
+
+      [[-2.5, 2.2], [2.5, 2.2], [-2.5, -2.2], [2.5, -2.2]].forEach(([ox, oz]) => {
+        addVoxel(portal, ox, 1.2, oz, 0.68, 1.9, 0.68, 0x64748b);
+        addVoxel(portal, ox, 2.45, oz, 0.42, 0.42, 0.42, 0x38bdf8, { emissive: 0x38bdf8, emissiveIntensity: 0.9 });
+      });
+
+      portalCore = addVoxel(portal, 0, 2.5, -0.5, 1.15, 1.9, 0.3, 0xbae6fd, { emissive: 0x38bdf8, emissiveIntensity: 0.95 });
+    }
+
+    // 7. ЖИЛОЙ ДОМ С СИНЕЙ КРЫШЕЙ
+    function buildBlueHouse() {
+      const house = new THREE.Group();
+      house.position.set(-13.5, 0.5, -2.2);
+      islandGroup.add(house);
+
+      addVoxel(house, 0, 0.25, 0, 4.6, 0.5, 3.8, 0x78716c);
+      addVoxel(house, 0, 1.35, 0, 4.2, 1.7, 3.4, 0xead8bc);
+      [[-2.05, 1.65], [2.05, 1.65], [-2.05, -1.65], [2.05, -1.65], [0, 1.65]].forEach(([bx, bz]) => {
+        addVoxel(house, bx, 1.35, bz, 0.22, 1.75, 0.22, 0x5c3a21);
+      });
+      addVoxel(house, 0, 2.15, 0, 4.3, 0.2, 3.5, 0x5c3a21);
+
+      addVoxel(house, -0.9, 0.15, 2.1, 1.2, 0.3, 0.6, 0x8c8580);
+      addVoxel(house, -0.9, 1.05, 1.72, 0.85, 1.3, 0.14, 0x6b3e1e);
+      addVoxel(house, 1.0, 1.3, 1.72, 0.9, 0.85, 0.14, 0xfef08a, { emissive: 0xf59e0b, emissiveIntensity: 0.75 });
+      addVoxel(house, 1.0, 0.85, 1.78, 1.05, 0.14, 0.2, 0x5c3a21);
+
+      const roofLayers = [
+        { w: 4.8, d: 4.0, c: 0x1d4ed8 },
+        { w: 4.8, d: 3.1, c: 0x2563eb },
+        { w: 4.8, d: 2.2, c: 0x1d4ed8 },
+        { w: 4.8, d: 1.3, c: 0x2563eb },
+        { w: 4.8, d: 0.5, c: 0x1e40af }
+      ];
+      roofLayers.forEach((rl, i) => {
+        const y = 2.4 + i * 0.42;
+        addVoxel(house, 0, y, 0, rl.w, 0.42, rl.d, rl.c);
+        if (i < 4) {
+          addVoxel(house, 0, y, 0, 4.15, 0.42, Math.max(0.4, rl.d - 0.75), 0xead8bc);
+        }
+      });
+
+      addVoxel(house, 1.35, 3.85, -0.7, 0.65, 1.4, 0.65, 0x78716c);
+      addVoxel(house, 1.35, 4.6, -0.7, 0.8, 0.2, 0.8, 0x57534e);
+
+      const fencePosts = [
+        [-2.8, -2.3], [0, -2.3], [2.8, -2.3],
+        [-2.8, 0], [-2.8, 2.3], [2.8, 0], [2.8, 2.3]
+      ];
+      fencePosts.forEach(([px, pz]) => {
+        addVoxel(house, px, 0.42, pz, 0.22, 0.85, 0.22, 0x5c3a21);
+      });
+      addVoxel(house, -2.8, 0.45, 0, 0.12, 0.16, 4.6, 0x8c5830);
+      addVoxel(house, 2.8, 0.45, 0, 0.12, 0.16, 4.6, 0x8c5830);
+      addVoxel(house, 0, 0.45, -2.3, 5.6, 0.16, 0.12, 0x8c5830);
+    }
+
+    // 8. СТРЕЛЬБИЩЕ И СМОТРОВАЯ ВЫШКА
+    function buildArcheryRange() {
+      const range = new THREE.Group();
+      range.position.set(13.5, 0.5, -1.8);
+      islandGroup.add(range);
+
+      for (let fx = -3.4; fx <= 3.41; fx += 1.7) {
+        addVoxel(range, fx, 0.4, -2.4, 0.2, 0.8, 0.2, 0x5c3a21);
+        if (Math.abs(fx) > 0.5) {
+          addVoxel(range, fx, 0.4, 2.4, 0.2, 0.8, 0.2, 0x5c3a21);
+        }
+      }
+      addVoxel(range, 0, 0.45, -2.4, 6.8, 0.15, 0.12, 0x8c5830);
+      addVoxel(range, -2.1, 0.45, 2.4, 2.6, 0.15, 0.12, 0x8c5830);
+      addVoxel(range, 2.1, 0.45, 2.4, 2.6, 0.15, 0.12, 0x8c5830);
+      addVoxel(range, -3.4, 0.45, 0, 0.12, 0.15, 4.8, 0x8c5830);
+      addVoxel(range, 3.4, 0.45, 0, 0.12, 0.15, 4.8, 0x8c5830);
+
+      const tx = 0.2, tz = -0.8;
+      [[-0.85, -0.85], [0.85, -0.85], [-0.85, 0.85], [0.85, 0.85]].forEach(([dx, dz]) => {
+        addVoxel(range, tx + dx, 2.1, tz + dz, 0.22, 4.2, 0.22, 0x5c3a21);
+      });
+      addVoxel(range, tx, 2.6, tz, 2.1, 0.22, 2.1, 0x8c5830);
+      addVoxel(range, tx, 3.1, tz - 0.95, 2.1, 0.16, 0.14, 0x784824);
+      addVoxel(range, tx, 3.1, tz + 0.95, 2.1, 0.16, 0.14, 0x784824);
+      addVoxel(range, tx - 0.95, 3.1, tz, 0.14, 0.16, 2.1, 0x784824);
+      addVoxel(range, tx + 0.95, 3.1, tz, 0.14, 0.16, 2.1, 0x784824);
+      addVoxel(range, tx, 4.35, tz, 2.5, 0.38, 2.5, 0x92400e);
+      addVoxel(range, tx, 4.72, tz, 1.7, 0.36, 1.7, 0x78350f);
+      addVoxel(range, tx, 5.05, tz, 0.9, 0.32, 0.9, 0x92400e);
+
+      const targets = [[-2.1, 0.2], [-1.1, 0.5], [1.8, 0.7], [2.6, 0.4]];
+      targets.forEach(([mx, mz]) => {
+        addVoxel(range, mx - 0.2, 0.45, mz - 0.1, 0.14, 0.9, 0.14, 0x5c3a21);
+        addVoxel(range, mx + 0.2, 0.45, mz - 0.1, 0.14, 0.9, 0.14, 0x5c3a21);
+        addVoxel(range, mx, 0.95, mz + 0.05, 0.82, 0.82, 0.14, 0xdc2626);
+        addVoxel(range, mx, 0.95, mz + 0.09, 0.54, 0.54, 0.14, 0xffffff);
+        addVoxel(range, mx, 0.95, mz + 0.13, 0.26, 0.26, 0.14, 0xdc2626);
+      });
+    }
+
+    // 9. КУЗНИЦА С ПЕЧЬЮ
+    function buildBlacksmith() {
+      const smith = new THREE.Group();
+      smith.position.set(-14.5, 0.5, 7.2);
+      islandGroup.add(smith);
+
+      addVoxel(smith, 0, 0.2, 0, 5.0, 0.4, 4.2, 0x78716c);
+      addVoxel(smith, 1.1, 0.15, 2.3, 1.4, 0.3, 0.6, 0x94a3b8);
+
+      addVoxel(smith, -0.5, 1.35, -0.4, 3.2, 1.9, 2.6, 0xead8bc);
+      addVoxel(smith, -1.75, 2.35, -0.4, 1.25, 4.3, 1.45, 0x64748b);
+      addVoxel(smith, -1.75, 4.6, -0.4, 1.55, 0.35, 1.75, 0x475569);
+
+      const smithRoof = [
+        { w: 3.8, d: 3.2, c: 0x475569 },
+        { w: 3.8, d: 2.3, c: 0x334155 },
+        { w: 3.8, d: 1.4, c: 0x475569 },
+        { w: 3.8, d: 0.6, c: 0x1e293b }
+      ];
+      smithRoof.forEach((sr, idx) => {
+        addVoxel(smith, -0.25, 2.5 + idx * 0.38, -0.4, sr.w, 0.38, sr.d, sr.c);
+      });
+
+      addVoxel(smith, 1.2, 1.15, 0.1, 1.4, 1.5, 1.5, 0x57534e);
+      addVoxel(smith, 1.2, 1.95, 0.1, 1.1, 0.3, 1.1, 0x44403c);
+      addVoxel(smith, 1.2, 0.85, 0.88, 0.8, 0.65, 0.15, 0xf97316, { emissive: 0xea580c, emissiveIntensity: 1.0 });
+
+      addVoxel(smith, 0.7, 0.55, 1.5, 0.75, 0.45, 0.42, 0x1e293b);
+      addVoxel(smith, 2.7, 0.45, 1.5, 0.85, 0.85, 0.85, 0x92400e);
+    }
+
+    // 10. РЫНОЧНАЯ ЛАВКА С КРАСНО-БЕЛЫМ НАВЕСОМ
+    function buildMarketStall() {
+      const stall = new THREE.Group();
+      stall.position.set(0, 0.5, 9.5);
+      islandGroup.add(stall);
+
+      addVoxel(stall, 0, 0.6, 0, 3.6, 1.0, 1.5, 0x854d0e);
+      addVoxel(stall, 0, 1.15, 0, 3.8, 0.18, 1.7, 0xa16207);
+
+      addVoxel(stall, -1.1, 1.38, 0.1, 0.7, 0.3, 0.7, 0xfbbf24);
+      addVoxel(stall, 0, 1.38, 0.1, 0.7, 0.3, 0.7, 0xef4444);
+      addVoxel(stall, 1.1, 1.38, 0.1, 0.7, 0.3, 0.7, 0x38bdf8);
+
+      addVoxel(stall, -1.65, 1.7, -0.65, 0.2, 2.4, 0.2, 0x5c3a21);
+      addVoxel(stall, 1.65, 1.7, -0.65, 0.2, 2.4, 0.2, 0x5c3a21);
+      addVoxel(stall, -1.65, 1.5, 0.65, 0.2, 2.0, 0.2, 0x5c3a21);
+      addVoxel(stall, 1.65, 1.5, 0.65, 0.2, 2.0, 0.2, 0x5c3a21);
+
+      const stripes = 7;
+      const stripeW = 3.85 / stripes;
+      for (let i = 0; i < stripes; i++) {
+        const sx = -1.925 + stripeW / 2 + i * stripeW;
+        const color = i % 2 === 0 ? 0xdc2626 : 0xf8fafc;
+        addVoxel(stall, sx, 2.85, -0.35, stripeW, 0.28, 1.1, color);
+        addVoxel(stall, sx, 2.58, 0.55, stripeW, 0.28, 1.1, color);
+        addVoxel(stall, sx, 2.35, 1.02, stripeW, 0.24, 0.18, color);
+      }
+
+      addVoxel(stall, -2.5, 0.5, 0.3, 0.75, 0.9, 0.75, 0x78350f);
+      addVoxel(stall, 2.5, 0.5, 0.3, 0.8, 0.85, 0.8, 0x92400e);
+      addVoxel(stall, 2.7, 0.4, 1.2, 0.65, 0.65, 0.65, 0xb45309);
+    }
+
+    // 11. ШАХТА С РЕЛЬСАМИ И ВАГОНЕТКОЙ
+    function buildMine() {
+      const mine = new THREE.Group();
+      mine.position.set(14.5, 0.5, 7.2);
+      islandGroup.add(mine);
+
+      const rockPalette = [0x949ba8, 0x838a96, 0xa3aab8, 0x727885];
+      const v = 0.45; // Размер одного вокселя скалы для четкой ступенчатой детализации
+
+      // 1. Аккуратный полусферический воксельный холм из мелких кубиков (как на оригинале)
+      for (let gx = -5; gx <= 6; gx++) {
+        for (let gz = -5; gz <= 4; gz++) {
+          const dx = gx - 0.5;
+          const dz = gz + 0.8;
+          const dist = Math.sqrt((dx * dx) / 30 + (dz * dz) / 22);
+          if (dist > 1.0) continue;
+
+          // Вырезаем проём для входа в шахту спереди-слева
+          if (gz >= 0 && gx >= -2 && gx <= 1) continue;
+
+          const heightSteps = Math.max(2, Math.round((1.0 - Math.pow(dist, 1.3)) * 8.5));
+          for (let gy = 0; gy < heightSteps; gy++) {
+            const hash = Math.abs(Math.sin(gx * 19.1 + gy * 7.3 + gz * 31.7));
+            const col = rockPalette[Math.floor(hash * rockPalette.length)];
+            addVoxel(mine, gx * v, gy * v + v / 2, gz * v, v * 1.01, v * 1.01, v * 1.01, col);
+          }
+        }
+      }
+
+      // Каменный свод над входом в шахту
+      for (let gx = -2; gx <= 1; gx++) {
+        for (let gz = 0; gz <= 2; gz++) {
+          for (let gy = 4; gy <= 6; gy++) {
+            if (gy === 6 && gz === 2) continue;
+            const col = (gx + gy) % 2 === 0 ? 0x949ba8 : 0x7b8391;
+            addVoxel(mine, gx * v, gy * v + v / 2, gz * v, v * 1.01, v * 1.01, v * 1.01, col);
+          }
+        }
+      }
+
+      // 2. Входной портал с брёвнами и золотым свечением, направленный вдоль рельсов
+      const portalGroup = new THREE.Group();
+      portalGroup.position.set(-0.22, 0, 0.95);
+      portalGroup.rotation.y = -0.52;
+      mine.add(portalGroup);
+
+      // Опорные брёвна крепи
+      addVoxel(portalGroup, -0.78, 0.85, 0, 0.28, 1.7, 0.34, 0x5c3a21);
+      addVoxel(portalGroup, 0.78, 0.85, 0, 0.28, 1.7, 0.34, 0x5c3a21);
+      // Верхняя перекладина
+      addVoxel(portalGroup, 0, 1.78, 0, 1.96, 0.28, 0.38, 0x6b4226);
+      // Угловые подпорки
+      addVoxel(portalGroup, -0.54, 1.52, 0.02, 0.22, 0.22, 0.28, 0x4a2e19);
+      addVoxel(portalGroup, 0.54, 1.52, 0.02, 0.22, 0.22, 0.28, 0x4a2e19);
+
+      // Тёплое золотое свечение изнутри штольни
+      addVoxel(portalGroup, 0, 0.82, -0.15, 1.28, 1.55, 0.2, 0x291d12);
+      addVoxel(portalGroup, 0, 0.75, -0.04, 1.12, 1.32, 0.12, 0xfbbf24, { emissive: 0xf59e0b, emissiveIntensity: 1.0 });
+
+      // 3. Рельсовый путь, выходящий из шахты
+      const railGroup = new THREE.Group();
+      railGroup.position.set(-0.22, 0.04, 0.95);
+      railGroup.rotation.y = -0.52;
+      mine.add(railGroup);
+
+      // Шпалы
+      for (let rz = 0.25; rz <= 4.1; rz += 0.48) {
+        addVoxel(railGroup, 0, 0.04, rz, 1.05, 0.08, 0.18, 0x5c3a21);
+      }
+      // Рельсы
+      addVoxel(railGroup, -0.32, 0.11, 2.15, 0.09, 0.08, 4.1, 0x94a3b8);
+      addVoxel(railGroup, 0.32, 0.11, 2.15, 0.09, 0.08, 4.1, 0x94a3b8);
+
+      // 4. Вагонетка на рельсах с горкой золотой руды
+      mineCart = new THREE.Group();
+      mineCart.position.set(0, 0.15, 2.65);
+      railGroup.add(mineCart);
+
+      // Колёса (остаются на рельсах при опрокидывании кузова)
+      [[-0.32, -0.32], [0.32, -0.32], [-0.32, 0.32], [0.32, 0.32]].forEach(([wx, wz]) => {
+        addVoxel(mineCart, wx, 0.13, wz, 0.11, 0.26, 0.26, 0x1e293b);
+      });
+
+      // Поворотный кузов с центром вращения на левом борту (для опрокидывания налево)
+      mineCartBody = new THREE.Group();
+      mineCartBody.position.set(-0.42, 0.24, 0);
+      mineCart.add(mineCartBody);
+
+      // Полый кузов вагонетки (дно + 4 стенки + верхний ободок), чтобы было видно пустоту внутри
+      const cartWallMat = 0x475569;
+      const cartTrimMat = 0x334155;
+      const cartInnerMat = 0x1e293b;
+      // Дно (видное сверху после разгрузки)
+      addVoxel(mineCartBody, 0.42, 0.04, 0, 0.82, 0.08, 1.12, cartInnerMat);
+      // Левая и правая стенки
+      addVoxel(mineCartBody, 0.05, 0.26, 0, 0.08, 0.42, 1.12, cartWallMat);
+      addVoxel(mineCartBody, 0.79, 0.26, 0, 0.08, 0.42, 1.12, cartWallMat);
+      // Передняя и задняя стенки
+      addVoxel(mineCartBody, 0.42, 0.26, -0.52, 0.66, 0.42, 0.08, cartWallMat);
+      addVoxel(mineCartBody, 0.42, 0.26, 0.52, 0.66, 0.42, 0.08, cartWallMat);
+      // Верхний выступающий ободок по периметру
+      addVoxel(mineCartBody, 0.03, 0.49, 0, 0.12, 0.07, 1.2, cartTrimMat);
+      addVoxel(mineCartBody, 0.81, 0.49, 0, 0.12, 0.07, 1.2, cartTrimMat);
+      addVoxel(mineCartBody, 0.42, 0.49, -0.54, 0.9, 0.07, 0.12, cartTrimMat);
+      addVoxel(mineCartBody, 0.42, 0.49, 0.54, 0.9, 0.07, 0.12, cartTrimMat);
+
+      // Золотая руда внутри: горка из отдельных воксельных самородков
+      mineCartOre = new THREE.Group();
+      mineCartBody.add(mineCartOre);
+
+      const oreColors = [0xd97706, 0xf59e0b, 0xfacc15, 0xfef08a, 0xca8a04];
+      const orePieces = [];
+
+      // Генерируем много мелких кусочков в виде горки строго в пределах внутренних стенок (меньше колеса вагонетки)
+      for (let ix = 0; ix < 7; ix++) {
+        for (let iz = 0; iz < 10; iz++) {
+          const px = 0.14 + ix * 0.092;
+          const pz = -0.42 + iz * 0.092;
+          const nx = (px - 0.42) / 0.28;
+          const nz = pz / 0.43;
+          const dist = Math.sqrt(nx * nx + nz * nz);
+          if (dist > 1.05) continue;
+
+          // Высота горки в этой точке (ниже уровня верхнего ободка 0.49)
+          const layers = Math.max(1, Math.round((1.05 - dist) * 4.5));
+          for (let ly = 0; ly < layers; ly++) {
+            const hash = Math.abs(Math.sin(ix * 13.7 + iz * 29.3 + ly * 47.1));
+            const jx = px + (hash - 0.5) * 0.03;
+            const jz = pz + (((hash * 7) % 1) - 0.5) * 0.03;
+            const py = 0.115 + ly * 0.072 + (hash * 0.015);
+            const size = 0.062 + ((hash * 3) % 1) * 0.025; // Диаметр колеса ~0.26, руда ~0.06..0.087 (в 3-4 раза меньше колеса)
+            const col = oreColors[Math.floor(hash * oreColors.length)];
+            orePieces.push({ x: jx, y: py, z: jz, sx: size, sy: size * 0.9, sz: size, c: col });
+          }
+        }
+      }
+
+      orePieces.forEach((op, idx) => {
+        const chunk = addVoxel(mineCartOre, op.x, op.y, op.z, op.sx, op.sy, op.sz, op.c, {
+          emissive: 0xd97706,
+          emissiveIntensity: 0.35
+        });
+        chunk.userData.basePos = new THREE.Vector3(op.x, op.y, op.z);
+        chunk.userData.baseScale = new THREE.Vector3(op.sx, op.sy, op.sz);
+        // В локальных координатах кузова (после поворота налево на +1.48 рад):
+        // локальный +Y направлен влево (в сторону ящика), локальный +X направлен вниз к ящику
+        chunk.userData.scatter = new THREE.Vector3(
+          0.32 + (idx % 4) * 0.06,
+          0.62 + (idx % 5) * 0.08,
+          ((idx % 7) - 3) * 0.07
+        );
+      });
+
+      // Приёмный деревянный ящик слева от конца рельсов (z = 3.15), куда ссыпается руда из вагонетки
+      const dumpCrate = new THREE.Group();
+      dumpCrate.position.set(-1.12, 0, 3.15);
+      railGroup.add(dumpCrate);
+      // Дно и 4 стенки ящика, чтобы было видно как внутрь падает золото
+      addVoxel(dumpCrate, 0, 0.04, 0, 0.92, 0.08, 1.24, 0x78350f);
+      addVoxel(dumpCrate, -0.42, 0.28, 0, 0.08, 0.44, 1.24, 0x92400e);
+      addVoxel(dumpCrate, 0.42, 0.28, 0, 0.08, 0.44, 1.24, 0x92400e);
+      addVoxel(dumpCrate, 0, 0.28, -0.58, 0.76, 0.44, 0.08, 0x92400e);
+      addVoxel(dumpCrate, 0, 0.28, 0.58, 0.76, 0.44, 0.08, 0x92400e);
+      // Угловые стойки ящика
+      [[-0.43, -0.59], [0.43, -0.59], [-0.43, 0.59], [0.43, 0.59]].forEach(([cx, cz]) => {
+        addVoxel(dumpCrate, cx, 0.28, cz, 0.1, 0.48, 0.1, 0x5c3a21);
+      });
+
+      // 5. Ящики с золотыми слитками слева от входа
+      addVoxel(mine, -1.55, 0.34, 0.95, 0.66, 0.66, 0.66, 0x92400e);
+      addVoxel(mine, -1.55, 0.34, 0.95, 0.7, 0.12, 0.7, 0x78350f);
+      addVoxel(mine, -2.15, 0.26, 1.35, 0.5, 0.5, 0.5, 0xb45309);
+      addVoxel(mine, -1.55, 0.76, 0.95, 0.36, 0.2, 0.36, 0xfacc15);
+    }
+
+    // 12. ПУСТЫЕ УЧАСТКИ ПОД СТРОИТЕЛЬСТВО
+    function buildEmptyPlots() {
+      const plots = [
+        [-6.5, 6.2],
+        [6.5, 6.2],
+        [-4.5, 13.5],
+        [4.5, 13.5]
+      ];
+
+      plots.forEach(([px, pz]) => {
+        const plot = new THREE.Group();
+        plot.position.set(px, 0.5, pz);
+        islandGroup.add(plot);
+
+        addVoxel(plot, 0, 0.35, -1.5, 3.2, 0.12, 0.12, 0x8c5830);
+        addVoxel(plot, 0, 0.35, 1.5, 3.2, 0.12, 0.12, 0x8c5830);
+        addVoxel(plot, -1.6, 0.35, 0, 0.12, 0.12, 3.0, 0x8c5830);
+        addVoxel(plot, 1.6, 0.35, 0, 0.12, 0.12, 3.0, 0x8c5830);
+        [[-1.6, -1.5], [1.6, -1.5], [-1.6, 1.5], [1.6, 1.5]].forEach(([cx, cz]) => {
+          addVoxel(plot, cx, 0.35, cz, 0.22, 0.7, 0.22, 0x5c3a21);
+        });
+
+        addVoxel(plot, 0, 0.45, 0, 0.18, 0.9, 0.18, 0x5c3a21);
+        addVoxel(plot, 0, 0.85, 0.06, 0.85, 0.55, 0.14, 0xd4a373);
+      });
+    }
+
+    // 13. ВОКСЕЛЬНЫЕ ДЕРЕВЬЯ, ФОНАРИ, КАМНИ И ЦВЕТЫ
+    function buildEnvironmentAndTrees() {
+      function addTree(tx, tz, scale = 1.0) {
+        const tree = new THREE.Group();
+        tree.position.set(tx, 0.5, tz);
+        tree.scale.set(scale, scale, scale);
+        islandGroup.add(tree);
+
+        addVoxel(tree, 0, 0.85, 0, 0.65, 1.7, 0.65, 0x6b4226);
+        addVoxel(tree, 0, 2.0, 0, 2.3, 1.1, 2.3, 0x2f8532);
+        addVoxel(tree, 0, 2.8, 0, 1.7, 0.9, 1.7, 0x3ea33c);
+        addVoxel(tree, 0, 3.4, 0, 0.9, 0.6, 0.9, 0x57bd49);
+      }
+
+      const treeCoords = [
+        [-6.5, -14.5, 1.05], [6.5, -14.5, 1.05],
+        [-16.5, -9.0, 0.95], [16.5, -8.5, 0.95],
+        [-18.5, -3.5, 1.0], [18.5, -2.5, 1.0],
+        [-18.0, 2.5, 0.9], [18.5, 2.5, 0.95],
+        [-5.2, -3.5, 0.85], [5.2, -3.5, 0.85],
+        [-6.5, 1.5, 0.8], [6.5, 1.5, 0.8],
+        [-9.2, 13.8, 0.95], [9.2, 13.8, 0.95],
+        [-12.5, 12.5, 0.85], [12.5, 12.5, 0.85],
+        [-3.2, -16.2, 0.8], [3.2, -16.2, 0.8],
+        [-14.5, -13.5, 0.85], [14.8, -13.5, 0.85]
+      ];
+      treeCoords.forEach(([x, z, s]) => addTree(x, z, s));
+
+      [[-2.5, 2.8], [2.5, 2.8], [-2.5, -4.2], [2.5, -4.2]].forEach(([lx, lz]) => {
+        addVoxel(islandGroup, lx, 1.1, lz, 0.22, 1.2, 0.22, 0x334155);
+        addVoxel(islandGroup, lx, 1.85, lz, 0.42, 0.42, 0.42, 0xfef08a, { emissive: 0xf59e0b, emissiveIntensity: 0.9 });
+      });
+
+      const rocks = [
+        [-17.2, -5.8], [16.8, -5.2], [-15.8, 11.2], [7.2, 14.5], [-10.5, -14.8]
+      ];
+      rocks.forEach(([rx, rz]) => {
+        addVoxel(islandGroup, rx, 0.85, rz, 1.2, 0.7, 1.0, 0x8590a2);
+        addVoxel(islandGroup, rx + 0.3, 1.15, rz - 0.1, 0.7, 0.5, 0.7, 0x9aa4b5);
+      });
+    }
+
+    // 14. ВОДОПАДЫ ПО КРАЯМ И ПАРЯЩИЕ МИНИ-ОСТРОВКИ
+    function buildWaterfallsAndMiniIslands() {
+      // Водопады слева и справа: точное примыкание к краю плато (x = ±21)
+      [-1, 1].forEach((dir, idx) => {
+        const edgeX = dir * 21.0;
+        const streamZ = 1.5;
+
+        // Верхнее озерцо и каменные берега, вровень с травяным плато
+        addVoxel(islandGroup, edgeX - dir * 1.2, 0.42, streamZ, 3.0, 0.28, 2.4, 0x38bdf8);
+        addVoxel(islandGroup, edgeX - dir * 1.1, 0.56, streamZ - 1.35, 2.8, 0.3, 0.35, 0x8590a2);
+        addVoxel(islandGroup, edgeX - dir * 1.1, 0.56, streamZ + 1.35, 2.8, 0.3, 0.35, 0x8590a2);
+        addVoxel(islandGroup, edgeX + dir * 0.35, 0.35, streamZ, 0.45, 0.35, 2.2, 0x7dd3fc);
+
+        // Вертикальный каскад, плотно прилегающий к скалистой стене
+        const steps = 6;
+        for (let step = 0; step < steps; step++) {
+          const wy = 0.05 - step * 0.72;
+          const color = step % 2 === 0 ? 0x38bdf8 : 0x7dd3fc;
+          const stream = addVoxel(islandGroup, edgeX + dir * 0.52, wy, streamZ, 0.32, 0.74, 2.1, color);
+          waterStreams.push({ mesh: stream, baseY: wy, stepHeight: 0.72, phase: step * 0.45 + idx });
+        }
+
+        // Аккуратная пена у основания водопада
+        addVoxel(islandGroup, edgeX + dir * 0.58, -4.35, streamZ, 0.75, 0.32, 2.3, 0xe0f2fe);
+      });
+
+      const miniIslands = [
+        { x: -24.5, y: -1.6, z: 3.2, s: 1.0 },
+        { x: 24.5, y: -1.4, z: 3.0, s: 1.0 },
+        { x: -21.2, y: -4.4, z: 9.8, s: 0.75 },
+        { x: 21.2, y: -4.2, z: 9.5, s: 0.75 }
+      ];
+
+      miniIslands.forEach(mi => {
+        const mGroup = new THREE.Group();
+        mGroup.position.set(mi.x, mi.y, mi.z);
+        mGroup.scale.set(mi.s, mi.s, mi.s);
+        islandGroup.add(mGroup);
+
+        addVoxel(mGroup, 0, 0, 0, 2.4, 0.6, 2.4, 0x68bd45);
+        addVoxel(mGroup, 0, -1.0, 0, 1.8, 1.4, 1.8, 0x7d6d78);
+        addVoxel(mGroup, 0, -2.0, 0, 1.0, 0.7, 1.0, 0x5c4f59);
+        addVoxel(mGroup, 0, 0.8, 0, 0.4, 1.0, 0.4, 0x6b4226);
+        addVoxel(mGroup, 0, 1.5, 0, 1.4, 0.9, 1.4, 0x3ea33c);
+      });
+    }
+
+    // 15. ВОКСЕЛЬНЫЕ ОБЛАКА НА ФОНЕ
+    function buildClouds() {
+      const cloudPositions = [
+        [-28, 12, -22, 1.3],
+        [28, 14, -20, 1.4],
+        [-30, -4, 8, 1.1],
+        [30, -3, 10, 1.2],
+        [0, 18, -28, 1.5]
+      ];
+
+      cloudPositions.forEach(([cx, cy, cz, sc]) => {
+        const cGroup = new THREE.Group();
+        cGroup.position.set(cx, cy, cz);
+        cGroup.scale.set(sc, sc, sc);
+        scene.add(cGroup);
+
+        addVoxel(cGroup, 0, 0, 0, 4.5, 1.2, 2.4, 0xffffff);
+        addVoxel(cGroup, -1.6, 0.5, 0.2, 2.2, 1.1, 1.8, 0xf1f5f9);
+        addVoxel(cGroup, 1.5, 0.4, -0.2, 2.4, 1.0, 1.9, 0xf8fafc);
+        clouds.push({ mesh: cGroup, startX: cx, speed: 0.15 + Math.random() * 0.1 });
+      });
+    }
+
+    // УПРАВЛЕНИЕ КАМЕРОЙ
+    function setupControls() {
+      const dom = renderer.domElement;
+      let initialPinchDist = 0;
+      let initialPinchZoom = 1;
+
+      function getTouchDistance(t1, t2) {
+        const dx = t1.clientX - t2.clientX;
+        const dy = t1.clientY - t2.clientY;
+        return Math.hypot(dx, dy);
+      }
+
+      dom.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        prevMouse = { x: e.clientX, y: e.clientY };
+      });
+      window.addEventListener('mouseup', () => isDragging = false);
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - prevMouse.x;
+        const dy = e.clientY - prevMouse.y;
+        prevMouse = { x: e.clientX, y: e.clientY };
+
+        targetRotY += dx * 0.006;
+        targetRotX = Math.max(-0.28, Math.min(0.32, targetRotX + dy * 0.005));
+      });
+
+      dom.addEventListener('wheel', (e) => {
+        targetZoom = Math.max(0.75, Math.min(1.85, targetZoom - e.deltaY * 0.0008));
+      }, { passive: true });
+
+      dom.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          isDragging = true;
+          prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        } else if (e.touches.length === 2) {
+          isDragging = false;
+          initialPinchDist = getTouchDistance(e.touches[0], e.touches[1]);
+          initialPinchZoom = targetZoom;
+        }
+      }, { passive: true });
+      window.addEventListener('touchend', (e) => {
+        if (e.touches.length === 0) {
+          isDragging = false;
+        } else if (e.touches.length === 1) {
+          isDragging = true;
+          prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+      });
+      window.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2 && initialPinchDist > 0) {
+          const currentDist = getTouchDistance(e.touches[0], e.touches[1]);
+          const ratio = currentDist / initialPinchDist;
+          targetZoom = Math.max(0.75, Math.min(1.85, initialPinchZoom * ratio));
+          return;
+        }
+        if (!isDragging || e.touches.length !== 1) return;
+        const dx = e.touches[0].clientX - prevMouse.x;
+        const dy = e.touches[0].clientY - prevMouse.y;
+        prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+
+        targetRotY += dx * 0.007;
+        targetRotX = Math.max(-0.28, Math.min(0.32, targetRotX + dy * 0.006));
+      }, { passive: true });
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      if (islandGroup) {
+        const aspectFactor = Math.min(1.22, Math.max(0.72, camera.aspect * 0.72));
+        islandGroup.scale.set(aspectFactor, aspectFactor, aspectFactor);
+      }
+    }
+
+    // ЦИКЛ АНИМАЦИИ
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const elapsed = clock.getElapsedTime();
+
+      currentRotY += (targetRotY - currentRotY) * 0.08;
+      currentRotX += (targetRotX - currentRotX) * 0.08;
+      currentZoom += (targetZoom - currentZoom) * 0.08;
+
+      if (islandGroup) {
+        islandGroup.rotation.y = currentRotY;
+        islandGroup.rotation.x = currentRotX;
+        islandGroup.position.y = Math.sin(elapsed * 1.1) * 0.25;
+      }
+
+      camera.position.set(0, 44 / currentZoom, 62 / currentZoom);
+      camera.lookAt(0, -1.8, 0.5);
+
+      if (millBlades) {
+        millBlades.rotation.z = -elapsed * 0.75;
+      }
+
+      if (portalCore) {
+        portalCore.position.y = 2.5 + Math.sin(elapsed * 2.5) * 0.18;
+        portalCore.rotation.y = elapsed * 0.8;
+      }
+
+      waterStreams.forEach(ws => {
+        ws.mesh.position.y = ws.baseY - ((elapsed * 3.0 + ws.phase) % ws.stepHeight);
+      });
+
+      fountainDrops.forEach(fd => {
+        const t = (elapsed * 1.8 + fd.offset) % 1;
+        fd.mesh.position.y = 1.6 + Math.sin(t * Math.PI) * 0.9;
+      });
+
+      clouds.forEach(cl => {
+        cl.mesh.position.x = cl.startX + Math.sin(elapsed * cl.speed) * 2.5;
+      });
+
+      // Анимация вагонетки: выезд -> опрокидывание налево и выгрузка -> возврат в шахту -> ожидание 20 сек
+      if (mineCart && mineCartBody && mineCartOre) {
+        if (mineCartCycleStart === null) mineCartCycleStart = elapsed;
+        const cycleDuration = 26.5; // 6.5 сек на выезд/разгрузку/въезд + 20 сек в шахте
+        const t = (elapsed - mineCartCycleStart) % cycleDuration;
+
+        const zInside = -0.35;
+        const zDump = 3.15;
+
+        if (t < 2.0) {
+          // 1. Выезд из шахты с грузом
+          const p = t / 2.0;
+          const ease = 1 - Math.pow(1 - p, 2);
+          mineCart.visible = true;
+          mineCart.position.z = zInside + (zDump - zInside) * ease;
+          mineCartBody.rotation.z = 0;
+          mineCartOre.visible = true;
+          mineCartOre.position.set(0, 0, 0);
+          mineCartOre.scale.set(1, 1, 1);
+          mineCartOre.children.forEach(c => {
+            if (c.userData.basePos) c.position.copy(c.userData.basePos);
+            if (c.userData.baseScale) c.scale.copy(c.userData.baseScale);
+          });
+        } else if (t < 3.0) {
+          // 2. Переворот кузова налево
+          const p = (t - 2.0) / 1.0;
+          const ease = Math.sin(p * Math.PI * 0.5);
+          mineCart.visible = true;
+          mineCart.position.z = zDump;
+          mineCartBody.rotation.z = ease * 1.48; // Наклон налево
+          mineCartOre.visible = true;
+          mineCartOre.position.set(-ease * 0.12, -ease * 0.08, 0);
+          mineCartOre.children.forEach(c => {
+            if (c.userData.basePos) c.position.copy(c.userData.basePos);
+            if (c.userData.baseScale) c.scale.copy(c.userData.baseScale);
+          });
+        } else if (t < 3.7) {
+          // 3. Высыпание кусочков горки в ящик сбоку и исчезновение содержимого
+          const p = (t - 3.0) / 0.7;
+          mineCart.visible = true;
+          mineCart.position.z = zDump;
+          mineCartBody.rotation.z = 1.48;
+          mineCartOre.visible = p < 0.92;
+          const s = p < 0.65 ? 1.0 : Math.max(0.01, 1 - (p - 0.65) / 0.35);
+          mineCartOre.children.forEach(c => {
+            if (c.userData.basePos && c.userData.scatter) {
+              c.position.copy(c.userData.basePos).addScaledVector(c.userData.scatter, Math.min(1.0, p * 1.35));
+            }
+            if (c.userData.baseScale) {
+              c.scale.copy(c.userData.baseScale).multiplyScalar(s);
+            }
+          });
+        } else if (t < 4.5) {
+          // 4. Возврат пустого кузова в горизонтальное положение
+          const p = (t - 3.7) / 0.8;
+          const ease = 1 - Math.sin(p * Math.PI * 0.5);
+          mineCart.visible = true;
+          mineCart.position.z = zDump;
+          mineCartBody.rotation.z = ease * 1.48;
+          mineCartOre.visible = false;
+        } else if (t < 6.5) {
+          // 5. Пустая вагонетка уезжает обратно в шахту
+          const p = (t - 4.5) / 2.0;
+          const ease = p * p;
+          mineCart.visible = true;
+          mineCart.position.z = zDump - (zDump - zInside) * ease;
+          mineCartBody.rotation.z = 0;
+          mineCartOre.visible = false;
+        } else {
+          // 6. Находится в шахте ровно 20 секунд (t от 6.5 до 26.5)
+          mineCart.visible = false;
+          mineCart.position.z = zInside;
+          mineCartBody.rotation.z = 0;
+          mineCartOre.visible = true;
+          mineCartOre.position.set(0, 0, 0);
+          mineCartOre.scale.set(1, 1, 1);
+          mineCartOre.children.forEach(c => {
+            if (c.userData.basePos) c.position.copy(c.userData.basePos);
+            if (c.userData.baseScale) c.scale.copy(c.userData.baseScale);
+          });
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    window.onload = function () {
+      initScene();
+      animate();
+    };
+  </script>
 </body>
 </html>
